@@ -14,7 +14,8 @@ class Scene {
 	}
 
 	push(scene, ...args) {
-		this.scenes.unshift(scene.in(...args));
+		scene.in(...args);
+		this.scenes.unshift(scene);
 	}
 
 	pop() {
@@ -162,8 +163,6 @@ class Asset {
 	}
 
 	add(...args) {
-		if (args.length == 0) { return; }
-
 		for (let images of args) {
 			if (images instanceof Array) {
 				images = images.map((v) => v.toString());
@@ -171,10 +170,20 @@ class Asset {
 			else if (typeof images === 'string') {
 				images = [images];
 			}
+			
 			for (let i of images) {
-				if (this.images.has(i)) { continue; }
-				let image = { name: i, raw: new Image(), loaded: false, toJSON: () => { return {name: i}; } };
-				image.raw.onload = () => { image.loaded = true; }
+				if (this.images.has(i)) {
+					continue;
+				}
+
+				let image = {
+					name: i,
+					raw: new Image(),
+					loaded: false,
+					toJSON: () => ({ name: i })
+				};
+
+				image.raw.onload = () => { image.loaded = true; };
 				image.raw.src = 'image/' + i;
 				this.images.set(i, image);
 			}
@@ -222,117 +231,81 @@ var You = {
 	context: null,
 	input: null,
 	scene: null,
-	thread: null,
-	
-	game: null,
-	selected: null,
 
 
-	loop: function() {
-		var time_now = Date.now();
+	loop: function () {
+		let time_now = Date.now();
 
 		// Input
 		this.input.update();
 
 		// Update
-		if (this.scene.current) { this.scene.update((time_now - this.time_last) / 1000); }
-		else { this.update((time_now - this.time_last) / 1000); }
+		this.scene.update((time_now - this.time_last) / 1000);
 
 		// Draw
 		this.buffer.save();
+
 		this.buffer.fillStyle = 'black';
 		this.buffer.fillRect(0, 0, this.buffer.canvas.width, this.buffer.canvas.height);
-		if (this.scene.current) { this.scene.draw(this.buffer); }
-		else { this.draw(this.buffer); }
+
+		this.scene.draw(this.buffer);
+
 		this.context.drawImage(this.buffer.canvas, 0, 0);
+
 		this.buffer.restore();
 
 		this.time_last = time_now;
-		this.display_handler = window.requestAFrame(()=>this.loop());
+
+		this.display_handler = window.requestAFrame(() => this.loop());
 	},
 
-	in: function() {
+	in: function () {
 		this.canvas = document.getElementById("canvas");
-		this.canvas.width = Math.min(window.innerWidth, window.innerHeight) - 10;
-		this.canvas.height = Math.min(window.innerWidth, window.innerHeight) - 10;
-		this.canvas.style.position = "absolute";
-		this.canvas.style.left = Math.floor((window.innerWidth - this.canvas.width) / 2) + "px";
-		this.canvas.style.top = Math.floor((window.innerHeight - this.canvas.height) / 2) + "px";
-
 		this.context = this.canvas.getContext("2d");
 
 		this.buffer = document.createElement("canvas").getContext("2d");
-		this.buffer.canvas.width = this.canvas.width;
-		this.buffer.canvas.height = this.canvas.height;
+
+		this.resize_handler = () => {
+			let size = Math.min(window.innerWidth, window.innerHeight) - 10;
+
+			this.canvas.width = this.canvas.height = size;
+			this.canvas.style.left = Math.floor((window.innerWidth - this.canvas.width) / 2) + "px";
+			this.canvas.style.top = Math.floor((window.innerHeight - this.canvas.height) / 2) + "px";
+
+			this.buffer.canvas.width = this.buffer.canvas.height = size;
+		}
+
+		window.addEventListener('resize', this.resize_handler);
+
+		this.resize_handler()
+
 
 		this.input = new Input();
 
 		this.asset = new Asset();
 		
-		this.resize_handler = () => {
-			let size = Math.min(window.innerWidth, window.innerHeight) - 10;
-			this.canvas.width = this.canvas.height = size;
-			this.buffer.canvas.width = this.buffer.canvas.height = size;
-			this.canvas.style.left = Math.floor((window.innerWidth - this.canvas.width) / 2) + "px";
-			this.canvas.style.top = Math.floor((window.innerHeight - this.canvas.height) / 2) + "px";
-		}
+		this.scene = new Scene(GameSelector.scene.title);
 
-		window.addEventListener('resize', this.resize_handler);
-
-		this.scene = new Scene();
-
-		this.games = [ Tetris, Nemo, Game, Editor ];
-		this.selected = 0;
 		
 		this.time_last = Date.now();
 		
-		this.display_handler = window.requestAFrame(()=>this.loop());
+		this.display_handler = window.requestAFrame(() => this.loop());
 	},
 
-	out: function() {
+	out: function () {
 		window.cancelAFrame(this.display_handler);
 		this.display_handler = null;
 
 		this.time_last = 0;
 
-		this.games = null;
-		this.selected = 0;
-
 		this.scene.clear();
 		this.scene = null;
 
-		window.removeEventListener('resize', this.resize_handler);
-
 		this.input.clear();
 		this.input = null;
+
+		window.removeEventListener('resize', this.resize_handler);
 	},
-
-	update: function(delta) {
-		if (You.input.key.down(Input.KEY_ENTER)) {
-			You.scene.transit(this.games[this.selected].scene.title);
-			return;
-		}
-
-		if (You.input.key.down(Input.KEY_UP)) {
-			this.selected = (this.selected - 1 + this.games.length) % this.games.length;
-		}
-		else if (You.input.key.down(Input.KEY_DOWN)) {
-			this.selected = (this.selected + 1) % this.games.length;
-		}
-	},
-
-	draw: function(context) {
-		context.font = "12px Arial";
-		context.textAlign = "center";
-		context.textBaseline = "middle";
-		context.fillStyle = "#fff";
-		for (let i = 0; i < this.games.length; i++) {
-			if (this.selected == i) {
-				context.fillStyle = "rgba(255, 255, 255, 0.5)";
-				context.fillRect(0, i * You.canvas.height / this.games.length, You.canvas.width, You.canvas.height / this.games.length);
-				context.fillStyle = "#fff";
-			}
-			context.fillText(this.games[i].name, You.canvas.width / 2, You.canvas.height / this.games.length / 2 * (2 * i + 1));
-		}
-	}
 };
+
+window.addEventListener('DOMContentLoaded', () => You.in());
