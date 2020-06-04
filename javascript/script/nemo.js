@@ -54,7 +54,7 @@ var Nemo = {
 			object_timer: null,
 
 			states: {
-				game: function () {
+				game: function (delta) {
 					if (You.input.key.down(Input.KEY_ESCAPE)) {
 						this.state = 'menu';
 					}
@@ -83,7 +83,7 @@ var Nemo = {
 						}
 					}
 
-					this.objects.forEach((o) => o.update(delta));
+					this.objects.forEach((o) => o.move(delta));
 					let reset = false;
 					for (let o of this.objects) {
 						if (this.character.hit(o)) {
@@ -120,7 +120,11 @@ var Nemo = {
 
 					this.generateObject(this.objects, this.object_count, this.character.getArea());
 				},
-				menu: function () {
+				menu: function (delta) {
+					if (You.input.key.down(Input.KEY_ESCAPE)) {
+						this.state = 'game';
+					}
+
 
 				}
 			},
@@ -143,6 +147,9 @@ var Nemo = {
 				this.object_timer = new Progress(0, 1, 2, 0);
 
 				this.state = 'game';
+
+				// Menu
+				this.
 			},
 
 			out: function() {
@@ -156,7 +163,7 @@ var Nemo = {
 			},
 
 			update: function(delta) {
-				this.states[this.state].call(this);
+				this.states[this.state].call(this, delta);
 			},
 
 			draw: function(context) {
@@ -178,8 +185,15 @@ var Nemo = {
 				context.textAlign = "right";
 				context.fillText("" + Math.floor(this.objects.length), 100, 30);
 
-				if (state == 'menu') {
+				if (this.state == 'menu') {
+					context.globalAlpha = 0.5;
+					context.fillStyle = '#000';
+					context.fillRect(0, 0, You.canvas.width, You.canvas.height);
 
+					// Menu Box
+					context.globalAlpha = 1;
+					context.fillStyle = '#555';
+					context.fillRect((You.canvas.width - 200) / 2, 100, 200, 300);
 				}
 			},
 
@@ -280,7 +294,8 @@ var Nemo = {
 }
 
 Nemo.Rectangle = class {
-	constructor(anchor, width, height) {
+	constructor(position, anchor, width, height) {
+		this.position = position;
 		this.anchor = anchor;
 		this.width = width;
 		this.height = height;
@@ -348,11 +363,6 @@ Nemo.GameObject = class {
 	draw(context) {
 		this.shape.draw(context, this.position, this.color);
 	}
-
-	getBoundingBox() {
-		let bb = this.shape.getBoundingBox();
-		return [this.position[0]+bb[0], this.position[1]+bb[1], bb[2], bb[3]];
-	}
 }
 
 Nemo.Moveable = class extends Nemo.GameObject {
@@ -368,6 +378,5 @@ Nemo.Moveable = class extends Nemo.GameObject {
 	}
 
 	update(delta) {
-		this.move(delta);
 	}
 }

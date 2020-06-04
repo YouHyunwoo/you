@@ -284,7 +284,7 @@ var You = {
 
 		this.asset = new Asset();
 		
-		this.scene = new Scene(GameSelector.scene.title);
+		this.scene = new Scene(Nemo.scene.title);
 
 		
 		this.time_last = Date.now();
