@@ -43,6 +43,197 @@ var Nemo = {
 			}
 		},
 
+		character: {
+
+		},
+
+		main: {
+			theme: {
+				red: {
+					button: {
+						backgroundColor: 'rgba(255, 0, 0, 0.5)',
+						textColor: '#fff',
+					}
+				}
+			},
+
+			menu: {
+				stats: [10, 10, 60, 50, '상태', 'rgba(255, 0, 0, 0.5)'],
+				upgrade: [80, 10, 100, 50, '업그레이드', 'rgba(255, 0, 0, 0.5)'],
+				game: [190, 10, 80, 50, '게임 시작', 'rgba(255, 0, 0, 0.5)'],
+			},
+			upgradeButtons: {
+				size: [150, 10, 100, 30, '$100', 'rgba(255, 0, 0, 0.5)'],
+				speed: [150, 50, 100, 30, '$100', 'rgba(255, 0, 0, 0.5)'],
+			},
+
+			states: {
+				stats: {
+					in: function () {
+						let size = this.characterStats.size;
+						let color = this.characterStats.color;
+						this.characterModel = new Nemo.GameObject(
+							[-size/2, -size/2], new Nemo.Rectangle([0, 0], size, size), color, null
+						);
+					},
+					update: function (delta) {
+						let mouse_event = You.input.mouse;
+						if (mouse_event) {
+							if (mouse_event[0] == 'up') {
+								let rect = You.canvas.getBoundingClientRect();
+								let rx = mouse_event[1].clientX - rect.left;
+								let ry = mouse_event[1].clientY - rect.top;
+								this.hitButton(this.menu, [rx, ry], {
+									stats: function () {
+										// console.log('상태');
+									},
+									upgrade: function () {
+										console.log('업그레이드');
+										this.state = 'upgrade';
+									},
+									game: function () {
+										console.log('게임 시작');
+									}
+								});
+							}
+						}
+					},
+					draw: function (context) {
+						if (this.viewport(
+							context,
+							0, 70, You.canvas.width / 2, You.canvas.height - 70,
+							() => {
+								context.translate(You.canvas.width / 4, You.canvas.height / 2);
+								if (this.characterModel)
+									this.characterModel.draw(context);
+							}
+						) == false) {
+							return;
+						}
+
+						if (this.viewport(
+							context,
+							You.canvas.width / 2, 70, You.canvas.width / 2, You.canvas.height - 70,
+							() => {
+								context.font = '15px Arial';
+								context.fillStyle = '#fff';
+								context.textAlign = 'left';
+								context.textBaseline = 'top';
+								context.fillText(`크기: ${this.characterStats.size}`, 10, 10);
+								context.fillText(`이동속도: ${this.characterStats.speed}`, 10, 30);
+							}
+						) == false) {
+							return;
+						}
+					}
+				},
+				upgrade: {
+					in: function () {
+
+					},
+					update: function (delta) {
+						let mouse_event = You.input.mouse;
+						if (mouse_event) {
+							if (mouse_event[0] == 'up') {
+								let rect = You.canvas.getBoundingClientRect();
+								let rx = mouse_event[1].clientX - rect.left;
+								let ry = mouse_event[1].clientY - rect.top;
+								this.hitButton(this.menu, [rx, ry], {
+									stats: function () {
+										console.log('상태');
+										this.state = 'stats';
+									},
+									upgrade: function () {
+										// console.log('업그레이드');
+									},
+									game: function () {
+										console.log('게임 시작')
+									}
+								});
+							}
+						}
+					},
+					draw: function (context) {
+						if (this.viewport(
+							context,
+							0, 70, You.canvas.width, You.canvas.height - 70,
+							() => {
+								context.font = '15px Arial';
+								context.fillStyle = '#fff';
+								context.textAlign = 'left';
+								context.textBaseline = 'middle';
+								context.fillText('크기 업그레이드', 10, 10 + 15);
+								context.fillText('이동속도 업그레이드', 10, 50 + 15);
+
+								for (let button in this.upgradeButtons) {
+									this.drawButton(this.upgradeButtons[button], context);
+								}
+							}
+						) == false) {
+							return;
+						}
+					}
+				}
+			},
+
+			characterStats: {
+				size: 10,
+				speed: 10,
+				color: '#fff',
+			},
+
+			in: function () {
+				this.state = 'stats';
+				this.states[this.state].in.call(this);
+			},
+			out: function () {
+				this.state = null;
+			},
+			update: function (delta) {
+				this.states[this.state].update.call(this, delta);
+			},
+			draw: function (context) {
+				for (let item in this.menu) {
+					this.drawButton(this.menu[item], context);
+				}
+
+				this.states[this.state].draw.call(this, context);
+			},
+			viewport: function (context, x, y, width, height, func) {
+				context.save();
+				context.translate(x, y);
+				context.beginPath();
+				context.rect(0, 0, width, height);
+				context.clip();
+				let result = func.call(this);
+				context.restore();
+
+				return result;
+			},
+			hitButton: function (buttons, mouse, actions) {
+				let [mx, my] = mouse;
+				for (let button in buttons) {
+					let [bx, by, bw, bh, ..._] = buttons[button];
+					if (bx <= mx && mx < bx+bw && by <= my && my < by+bh) {
+						actions[button].call(this);
+						break;
+					}
+				}
+			},
+			drawButton: function (button, context, theme=null) {
+				let [bx, by, bw, bh, text, color] = button;
+				context.save();
+				context.fillStyle = theme ? theme.button.backgroundColor : color;
+				context.fillRect(bx, by, bw, bh);
+				context.font = "15px Arial";
+				context.textBaseline = 'middle';
+				context.textAlign = 'center';
+				context.fillStyle = theme ? theme.button.textColor : '#fff';
+				context.fillText(text, bx + bw/2, by + bh/2);
+				context.restore();
+			}
+		},
+
 		game: {
 
 			score: 0,
@@ -60,16 +251,16 @@ var Nemo = {
 					}
 
 					if (You.input.key.press(Input.KEY_LEFT)) {
-						this.character.position[0] -= this.character.speed * delta;
+						this.character.transform.position[0] -= this.character.speed * delta;
 					}
 					else if (You.input.key.press(Input.KEY_RIGHT)) {
-						this.character.position[0] += this.character.speed * delta;
+						this.character.transform.position[0] += this.character.speed * delta;
 					}
 					if (You.input.key.press(Input.KEY_UP)) {
-						this.character.position[1] -= this.character.speed * delta;
+						this.character.transform.position[1] -= this.character.speed * delta;
 					}
 					else if (You.input.key.press(Input.KEY_DOWN)) {
-						this.character.position[1] += this.character.speed * delta;
+						this.character.transform.position[1] += this.character.speed * delta;
 					}
 
 					this.object_timer.update(delta);
@@ -83,20 +274,21 @@ var Nemo = {
 						}
 					}
 
-					this.objects.forEach((o) => o.move(delta));
+					this.objects.forEach((o) => o.update(delta));
 					let reset = false;
 					for (let o of this.objects) {
-						if (this.character.hit(o)) {
+						if (this.character.findComponent('bc')[0].hit(o)) {
 							if (this.character.getArea() > o.getArea()) {
-								if (o.type == 0) {
-									this.character.growUp(Math.sqrt(o.getArea()));
-								}
-								else if (o.type == 1) {
-									this.character.speed *= 1.5;
-								}
-								else if (o.type == 2) {
-									reset = true;
-								}
+								// if (o.tags.includes('normal')) {
+								// 	// this.character.growUp(Math.sqrt(o.getArea()));
+								// }
+								// else if (o.tags.includes('speedUp')) {
+								// 	this.character.findComponent('m')[0].speed *= 1.5;
+								// }
+								// else if (o.tags.includes('reset')) {
+								// 	reset = true;
+								// }
+								this.character.growUp(Math.sqrt(o.getArea()));
 								this.score += Math.sqrt(o.getArea());
 								if (You.canvas.width * You.canvas.height < this.character.getArea()) {
 									// Game Clear
@@ -116,7 +308,12 @@ var Nemo = {
 						this.object_count = 10;
 					}
 
-					this.objects = this.objects.filter((o) => !(!o.hit([0, 0, You.canvas.width, You.canvas.height]) || o.hit(this.character)));
+					// console.log('---')
+					// console.log(this.objects.length)
+					this.objects = this.objects.filter((o) => o.hit([0, 0, You.canvas.width, You.canvas.height]));
+					// console.log(this.objects.length)
+					this.objects = this.objects.filter((o) => !o.hit(this.character));
+					// console.log(this.objects.length)
 
 					this.generateObject(this.objects, this.object_count, this.character.getArea());
 				},
@@ -133,14 +330,16 @@ var Nemo = {
 			in: function() {
 				this.score = 0;
 
-				this.character = new Nemo.Moveable(
-					[ (You.canvas.width - 10) / 2, (You.canvas.height - 10) / 2 ],
-					new Nemo.Rectangle([0, 0], 10, 10),
-					"rgb(255, 255, 255)",
-					null,
-					null,
-					100
-				)
+				this.character = new Nemo.GO('player');
+				this.character.transform.position = [ (You.canvas.width - 10) / 2, (You.canvas.height - 10) / 2 ];
+				this.character.addComponent(new Nemo.SR('sr', 10, 10, '#fff'));
+				this.character.addComponent(new Nemo.NemoObject('n'));
+				this.character.addComponent(new Nemo.BoxCollider('bc', 10, 10));
+				this.character.tags = ['player'];
+				this.character.speed = 100;
+				this.character.hit = (...args) => this.character.findComponent('bc')[0].hit(...args);
+				this.character.growUp = () => this.character.findComponent('n')[0].growUp();
+				this.character.getArea = () => this.character.findComponent('n')[0].getArea();
 
 				this.objects = [];
 				this.object_count = 10;
@@ -149,7 +348,6 @@ var Nemo = {
 				this.state = 'game';
 
 				// Menu
-				this.
 			},
 
 			out: function() {
@@ -213,14 +411,29 @@ var Nemo = {
 					let prob_type = Math.random() * 100;
 					let type = prob_type > 5 ? 0 : prob_type > 3 ? 1 : 2;
 
-					objects.push(new Nemo.Moveable(
-						[x, y],
-						new Nemo.Rectangle([0, 0], size, size),
-						'rgb(255, ' + Math.floor(size / You.canvas.width * 1000) + ', 0)',
-						type,
-						[ direction_x, 0 ],
-						random(20, 200)
-					));
+					let obj = new Nemo.GO('object');
+					obj.transform.position = [x, y];
+					obj.addComponent(new Nemo.SR('sr', size, size,
+						type == 0 ? 'rgb(255, ' + Math.floor(size / You.canvas.width * 1000) + ', 0)' :
+						type == 1 ? '#55f' :
+						'#5f5'));
+					obj.addComponent(new Nemo.M('m', [ direction_x, 0 ], random(20, 200)));
+					obj.addComponent(new Nemo.BoxCollider('bc', size, size));
+					obj.addComponent(new Nemo.NemoObject('n'));
+					obj.tags.push(type == 0 ? 'normal' : type == 1 ? 'speedUp' : 'reset');
+					obj.hit = (...args) => obj.findComponent('bc')[0].hit(...args);
+					obj.growUp = () => obj.findComponent('n')[0].growUp();
+					obj.getArea = () => obj.findComponent('n')[0].getArea();
+					objects.push(obj);
+
+					// objects.push(new Nemo.Moveable(
+					// 	[x, y],
+					// 	new Nemo.Rectangle([0, 0], size, size),
+					// 	'rgb(255, ' + Math.floor(size / You.canvas.width * 1000) + ', 0)',
+					// 	type,
+					// 	[ direction_x, 0 ],
+					// 	random(20, 200)
+					// ));
 				}
 			}
 
@@ -294,8 +507,7 @@ var Nemo = {
 }
 
 Nemo.Rectangle = class {
-	constructor(position, anchor, width, height) {
-		this.position = position;
+	constructor(anchor, width, height) {
 		this.anchor = anchor;
 		this.width = width;
 		this.height = height;
@@ -325,6 +537,177 @@ Nemo.Rectangle = class {
 		context.fillRect(position[0] + this.anchor[0], position[1] + this.anchor[1], this.width, this.height);
 	}
 }
+
+Nemo.Object = class {
+	constructor(name) {
+		this.parent = null;
+
+		this.name = name;
+		this.enable = true;
+		this.components = [];
+		this.tags = [];
+	}
+
+	addComponent(component) {
+		if (!component) {
+			throw 'argumentError';
+		}
+
+		component.parent = this;
+		this.components.push(component);
+
+		return this;
+	}
+
+	removeComponent(component) {
+		if (!component) {
+			throw 'argumentError';
+		}
+
+		let idx = this.components.indexOf(component);
+		if (idx > -1) {
+			this.components.splice(idx, 1).parent = null;
+		}
+
+		return this;
+	}
+
+	findComponent(expression) {
+		let [name, ...tags] = expression.split('#');
+		let found = [];
+
+		loopComponent:
+		for (let c of this.components) {
+			if (!(name && c.name == name)) {
+				continue;
+			}
+
+			for (let tag of tags) {
+				if (!c.tags.includes(tag)) {
+					continue loopComponent;
+				}
+			}
+
+			found.push(c);
+		}
+
+		return found;
+	}
+
+	// tag
+
+	update(delta) {
+		this.onUpdate(delta);
+		this.components.forEach((c) => c.update(delta));
+	}
+	onUpdate(delta) {}
+
+	draw(context) {
+		this.onDraw(context);
+		this.components.forEach((c) => c.draw(context));
+	}
+	onDraw(context) {}
+}
+
+Nemo.SR = class extends Nemo.Object {
+	constructor(name, width, height, color) {
+		super(name);
+
+		this.width = width;
+		this.height = height;
+		this.color = color;
+	}
+
+	onDraw(context) {
+		context.fillStyle = this.color;
+		context.fillRect(this.parent.transform.position[0], this.parent.transform.position[1], this.width, this.height);
+	}
+}
+Nemo.GO = class extends Nemo.Object {
+	constructor(name) {
+		super(name);
+
+		this.transform = {
+			position: [ 0, 0 ],
+			scale: [ 1, 1 ],
+			rotate: [ 0, 0 ],
+		};
+	}
+}
+
+Nemo.M = class extends Nemo.Object {
+	constructor(name, direction, speed) {
+		super(name);
+
+		this.direction = direction;
+		this.speed = speed;
+	}
+
+	onUpdate(delta) {
+		this.parent.transform.position[0] += this.direction[0] * this.speed * delta;
+		this.parent.transform.position[1] += this.direction[1] * this.speed * delta;
+	}
+}
+
+
+Nemo.Collider = class extends Nemo.Object {
+	constructor(name) {
+		super(name);
+	}
+
+	hit(collider) {
+
+	}
+}
+
+Nemo.BoxCollider = class extends Nemo.Collider {
+	constructor(name, width, height) {
+		super(name);
+
+		this.width = width;
+		this.height = height;
+	}
+
+	hit(collider) {
+		if (collider instanceof Array) {
+			let [x, y] = this.parent.transform.position;
+			let [cx, cy, cw, ch] = collider;
+			return cx < x + this.width && x < cx + cw && cy < y + this.height && y < cy + ch;
+		}
+		else if (collider instanceof Nemo.BoxCollider) {
+			let [x, y] = this.parent.transform.position;
+			let [sx, sy] = collider.parent.transform.position;
+			return sx < x + this.width && x < sx + collider.width && sy < y + this.height && y < sy + collider.height;
+		}
+		else if (collider instanceof Nemo.Object) {
+			// console.log(collider)
+			// console.trace();
+			// console.dir(this.hit(collider.findComponent('bc')[0]))
+			return this.hit(collider.findComponent('bc')[0]);
+		}
+	}
+}
+
+Nemo.NemoObject = class extends Nemo.Object {
+	constructor(name) {
+		super(name);
+	}
+
+	growUp(amount) {
+		console.log(amount);
+		debugger;
+		console.log(this.parent.findComponent('sr')[0]);
+		let sr = this.parent.findComponent('sr')[0];
+		let size = Math.sqrt(this.width ** 2 + amount);
+		sr.width = sr.height = size;
+	}
+
+	getArea() {
+		let sr = this.parent.findComponent('sr')[0];
+		return sr.width * sr.height;
+	}
+}
+
 
 Nemo.GameObject = class {
 	constructor(position, shape, color, type) {
