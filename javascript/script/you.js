@@ -308,4 +308,304 @@ var You = {
 	},
 };
 
+
+You.Object = class {
+	constructor(name) {
+		this.parent = null;
+
+		this.name = name;
+		this.enable = true;
+		this.components = [];
+		this.tags = [];
+	}
+
+	addComponent(component) {
+		if (!component) {
+			throw 'argumentError';
+		}
+
+		component.parent = this;
+		this.components.push(component);
+
+		return this;
+	}
+
+	removeComponent(component) {
+		if (!component) {
+			throw 'argumentError';
+		}
+
+		let idx = this.components.indexOf(component);
+		if (idx > -1) {
+			this.components.splice(idx, 1).parent = null;
+		}
+
+		return this;
+	}
+
+	findComponent(expression) {
+		let [name, ...tags] = expression.split('#');
+		let found = [];
+
+		loopComponent:
+		for (let c of this.components) {
+			if (!(name && c.name == name)) {
+				continue;
+			}
+
+			for (let tag of tags) {
+				if (!c.tags.includes(tag)) {
+					continue loopComponent;
+				}
+			}
+
+			found.push(c);
+		}
+
+		return found;
+	}
+
+	// tag
+
+	update(delta, ...args) {
+		this.onUpdate(delta, ...args);
+		this.components.forEach((c) => c.update(delta, ...args));
+	}
+	onUpdate(delta, ...args) {}
+
+	draw(context, ...args) {
+		this.onDraw(context, ...args);
+		this.components.forEach((c) => c.draw(context, ...args));
+	}
+	onDraw(context, ...args) {}
+};
+
+You.State = class extends You.Object {
+	constructor(name) {
+		super(name);
+	}
+
+	request(...args) {
+
+	}
+
+	transit(stateName, enterArgs, exitArgs) {
+		this.parent.transit(stateName, enterArgs, exitArgs);
+	}
+
+	enter(...args) {
+		this.onEnter(...args);
+	}
+	onEnter(...args) {}
+
+	exit(...args) {
+		this.onExit(...args);
+	}
+	onExit(...args) {}
+};
+
+You.State.Context = class extends You.Object {
+	constructor(name) {
+		super(name);
+
+		this.state = null;
+	}
+
+	update(delta, ...args) {
+		this.onUpdate(delta, ...args);
+
+		if (this.state) {
+			this.state.onUpdate(delta, ...args);
+		}
+	}
+
+	draw(context, ...args) {
+		this.onDraw(context, ...args);
+
+		if (this.state) {
+			this.state.onDraw(context, ...args);
+		}
+	}
+
+	request(...args) {
+		if (this.state != null) {
+			this.state.request(...args);
+		}
+	}
+
+	transit(stateName, enterArgs, exitArgs) {
+		if (this.state != null) {
+			if (exitArgs) {
+				this.state.exit(...exitArgs);
+			}
+			else {
+				this.state.exit();
+			}
+		}
+
+		if (stateName != null) {
+			let state = this.findComponent(stateName);
+
+			if (state) {
+				this.state = state[0];
+				console.info('state changed: %s', this.state.name);
+
+				if (enterArgs) {
+					this.state.enter(...enterArgs);
+				}
+				else {
+					this.state.enter();
+				}
+			}
+			else {
+				console.info('state cannot change: %s', stateName);
+			}
+		}
+	}
+};
+
+You.Text = class extends You.Object {
+	constructor(name) {
+		super(name);
+
+		this.position = [0, 0];
+		this.size = null;
+
+		this.text = '';
+		this.font = '15px Arial';
+		this.textAlpha = 1;
+		this.textAlign = 'left';
+		this.textVerticalAlign = 'top';
+		this.textColor = 'white';
+		this.backgroundColor = 'black';
+	}
+
+	setPosition(position) {
+		this.position = position || [0, 0];
+
+		return this;
+	}
+
+	setSize(size) {
+		this.size = size || null;
+
+		return this;
+	}
+
+	setText(text) {
+		this.text = text || '';
+
+		return this;
+	}
+
+	setFont(font) {
+		this.font = font || '15px Arial';
+
+		return this;
+	}
+
+	setTextAlpha(textAlpha) {
+		this.textAlpha = textAlpha;
+
+		return this;
+	}
+
+	setTextAlign(textAlign) {
+		this.textAlign = textAlign || 'left';
+
+		return this;
+	}
+
+	setTextVerticalAlign(textVerticalAlign) {
+		this.textVerticalAlign = textVerticalAlign || 'top';
+
+		return this;
+	}
+
+	setTextColor(textColor) {
+		this.textColor = textColor || 'white';
+
+		return this;
+	}
+
+	setBackgroundColor(backgroundColor) {
+		this.backgroundColor = backgroundColor || 'black';
+
+		return this;
+	}
+
+	onDraw(context) {
+		context.save();
+
+		context.fillStyle = this.backgroundColor;
+		context.fillRect(...this.position, ...this.size);
+
+		context.font = this.font;
+		context.globalAlpha = this.textAlpha;
+		context.textAlign = this.textAlign;
+		context.textBaseline = this.size == null ? 'top' : this.textVerticalAlign;
+		context.fillStyle = this.textColor;
+		
+		let [tx, ty] = this.position;
+
+		let dx = { left: 0, center: 1, right: 2 };
+		tx += dx[this.textAlign] * this.size[0] / 2;
+
+		let dy = { top: 0, middle: 1, bottom: 2};
+		ty += dy[this.textVerticalAlign] * this.size[1] / 2;
+
+		context.beginPath();
+		context.rect(...this.position, ...this.size); ///
+		context.clip();
+
+		context.fillText(this.text, tx, ty);
+
+		context.restore();
+	}
+};
+
+You.Button = class extends You.Text {
+	constructor(name) {
+		super(name);
+
+		this.handlers = [];
+		this.args = [];
+	}
+
+	addHandler(handler, ...args) {
+		if (!handler) {
+			throw 'argumentError';
+		}
+
+		this.handlers.push(handler);
+		this.args.push(args);
+
+		return this;
+	}
+
+	removeHandler(handler) {
+		if (!handler) {
+			throw 'argumentError';
+		}
+
+		let idx = this.handlers.indexOf(handler);
+		if (idx > -1) {
+			this.handlers.splice(idx, 1);
+			this.args.splice(idx, 1);
+		}
+
+		return this;
+	}
+
+	handleMouse(mouse) {
+		let [mx, my] = mouse;
+		let [bx, by, bw, bh] = [...this.position, ...this.size];
+		
+		if (bx <= mx && mx < bx+bw && by <= my && my < by+bh) {
+			this.handlers.forEach((h, i) => h(...this.args[i]));
+		}
+	}
+};
+
+
 window.addEventListener('DOMContentLoaded', () => You.in());
