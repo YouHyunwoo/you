@@ -4,7 +4,14 @@ var Nemo = {
 	desc: "rectangle grow up game made by You",
 
 	asset: {
-		characters: [],
+		characters: [
+			{
+				size: [1, 10, 1, 100], // level, current, next, price
+				speed: [1, 100, 0.5, 100],
+				color: 'white',
+				money: 10000,
+			}
+		],
 		stats: {
 			size: [1, 10, 1, 100], // level, current, next, price
 			speed: [1, 100, 0.5, 100],
@@ -40,7 +47,7 @@ var Nemo = {
 				if (this.prg_cont.isEmpty || this.prg_cont.isFull) { this.prg_cont.speed *= -1; }
 
 				if (You.input.key.down(Input.KEY_ENTER)) {
-					You.scene.transit(Nemo.scene.main);
+					You.scene.transit(Nemo.scene.character);
 				}
 			},
 
@@ -66,7 +73,56 @@ var Nemo = {
 		},
 
 		character: {
+			in() {
+				this.margin = {
+					left: 50,
+					right: 50,
+					top: 50,
+					bottom: 50
+				};
 
+				this.inner = {
+					width: You.canvas.width - this.margin.left - this.margin.right,
+					height: You.canvas.height - this.margin.top - this.margin.bottom
+				}
+
+				this.buttons = {
+					choices: {
+						stats: new You.Button('stats button')
+								.setPosition([10, 10])
+								.setSize([60, 50])
+								.setText('상태')
+								.setTextAlign('center')
+								.setTextVerticalAlign('middle')
+								.setBackgroundColor('rgba(255, 0, 0, 0.5)'),
+						upgrade: new You.Button('upgrade button')
+								.setPosition([80, 10])
+								.setSize([100, 50])
+								.setText('업그레이드')
+								.setTextAlign('center')
+								.setTextVerticalAlign('middle')
+								.setBackgroundColor('rgba(255, 0, 0, 0.5)'),
+						game: new You.Button('game button')
+								.setPosition([190, 10])
+								.setSize([80, 50])
+								.setText('게임 시작')
+								.setTextAlign('center')
+								.setTextVerticalAlign('middle')
+								.setBackgroundColor('rgba(255, 0, 0, 0.5)'),
+					}
+				};
+
+				this.controller = new Nemo.MainController('main controller', this);
+			},
+			out() {
+				this.controller = null;
+			},
+			update(delta) {
+				this.controller.update(delta);
+			},
+			draw(context) {
+				this.controller.draw(context);
+			},
 		},
 
 		main: {
@@ -129,24 +185,20 @@ var Nemo = {
 			},
 		},
 
-		/// 수정 필요: object가 안나옴
 		game: {
 			in: function() {
 				this.score = 0;
 
-				let size = Nemo.asset.stats.size;
+				let size = Nemo.asset.stats.size[1];
 				let color = Nemo.asset.stats.color;
 
-				this.character = new Nemo.GameObject('player');
+				this.character = new Nemo.NemoObject('player'); // NemoObject
 				this.character.transform.position = [ (You.canvas.width - 10) / 2, (You.canvas.height - 10) / 2 ];
 				this.character.addComponent(new Nemo.Rectangle('sr', size, size, color));
 				this.character.addComponent(new Nemo.BoxCollider('bc', size, size));
-				this.character.addComponent(new Nemo.NemoObject('n'));
 				this.character.tags = ['player'];
 				this.character.speed = 100;
 				this.character.hit = (...args) => this.character.findComponent('bc')[0].hit(...args);
-				this.character.growUp = (...args) => this.character.findComponent('n')[0].growUp(...args);
-				this.character.getArea = (...args) => this.character.findComponent('n')[0].getArea(...args);
 
 				this.objects = [];
 				this.objectCount = 10;
@@ -212,8 +264,7 @@ var Nemo = {
 
 				if (You.input.key.down(Input.KEY_ENTER)) {
 					if (this.prg_title.isFull) {
-						// You.scene.transit(Nemo.scene.title);
-						You.scene.pop();
+						You.scene.transit(Nemo.scene.main);
 						return;
 					}
 				}
@@ -242,6 +293,8 @@ var Nemo = {
 		}
 	}
 };
+
+
 
 Nemo.Rectangle = class extends You.Object {
 	constructor(name, width, height, color) {
@@ -319,27 +372,95 @@ Nemo.BoxCollider = class extends Nemo.Collider {
 	}
 }
 
-Nemo.NemoObject = class extends You.Object {
+Nemo.NemoObject = class extends Nemo.GameObject {
 	constructor(name) {
 		super(name);
 	}
 
 	growUp(amount) {
-		let sr = this.parent.findComponent('sr')[0];
-		let bc = this.parent.findComponent('bc')[0];
+		let sr = this.sr;
+		let bc = this.findComponent('bc')[0];
 		let size = Math.sqrt(sr.width ** 2 + amount);
 		sr.width = sr.height = size;
 		bc.width = bc.height = size;
-		console.dir(sr.width)
+		console.dir(sr.width);
 	}
 
 	getArea() {
-		let sr = this.parent.findComponent('sr')[0];
+		let sr = this.findComponent('sr')[0];
 		return sr.width * sr.height;
 	}
-} // 수정 필요: Nemo.GameObject를 상속
+}
 
+// Character Scene
+Nemo.SelectState = class extends You.State {
+	constructor(name, scene) {
+		super(name);
 
+		this.scene = scene;
+	}
+
+	onUpdate(delta) {
+		let mouse_event = You.input.mouse;
+		if (mouse_event) {
+			if (mouse_event[0] == 'up') {
+				let rect = You.canvas.getBoundingClientRect();
+
+				let rx = mouse_event[1].clientX - rect.left;
+				let ry = mouse_event[1].clientY - rect.top;
+
+				Object.values(scene.buttons.menu).forEach((button) => button.handleMouse([rx, ry]));
+			}
+		}
+	}
+
+	onDraw(context) {
+		context.save();
+
+		context.beginPath();
+		context.rect(this.margin.left, this.margin.top, this.inner.width, this.inner.height);
+		context.clip();
+
+		context.font = '15px Arial';
+		context.textAlign = 'left';
+		context.textBaseline = 'top';
+		
+		for (let i = 0; i < Nemo.asset.characters.length; i++) {
+			context.fillStyle = 'rgba(255, 255, 255, 0.1)';
+			context.fillRect(this.margin.left, this.margin.top, this.inner.width, 100);
+
+			context.fillStyle = 'white';
+			context.fillText(`소지금 ${Nemo.asset.characters[i].money}`, this.margin.left + 10, this.margin.top + 10);
+			context.fillText(`크기 ${Nemo.asset.characters[i].size[1]}`, this.margin.left + 10, this.margin.top + 30);
+			context.fillText(`이동속도 ${Nemo.asset.characters[i].speed[1]}`, this.margin.left + 10, this.margin.top + 50);
+		}
+		
+		context.restore();
+	}
+}
+
+Nemo.CharacterController = class extends You.Object {
+	constructor(name, scene) {
+		super(name);
+
+		this.scene = scene;
+
+		this.states = new You.State.Context('state context')
+							.addComponent(new Nemo.SelectState('select state', scene));
+
+		this.states.transit('select state');
+
+		// scene.
+	}
+
+	onUpdate(delta) {
+		this.states.update(delta);
+	}
+
+	onDraw(context) {
+		this.states.draw(context);
+	}
+}
 
 // Main Scene
 Nemo.StatsState = class extends You.State {
@@ -377,6 +498,13 @@ Nemo.StatsState = class extends You.State {
 	onDraw(context) {
 		Object.values(this.scene.buttons.menu).forEach((button) => button.draw(context));
 
+		context.font = '15px Arial';
+		context.fillStyle = '#fff';
+		context.textAlign = 'left';
+		context.textBaseline = 'middle';
+
+		context.fillText(`소지금: ${Nemo.asset.stats.money}`, You.canvas.width - 100, 30);
+
 		context.save();
 
 		context.translate(You.canvas.width / 4, You.canvas.height / 2);
@@ -387,14 +515,12 @@ Nemo.StatsState = class extends You.State {
 
 		context.restore();
 
-		context.font = '15px Arial';
-		context.fillStyle = '#fff';
-		context.textAlign = 'left';
-		context.textBaseline = 'top';
-		
 		context.translate(You.canvas.width / 2, 70);
-		context.fillText(`크기: ${Nemo.asset.stats.size}`, 10, 10);
-		context.fillText(`이동속도: ${Nemo.asset.stats.speed}`, 10, 30);
+
+		context.textBaseline = 'top';
+
+		context.fillText(`크기: ${Nemo.asset.stats.size[1]}`, 10, 10);
+		context.fillText(`이동속도: ${Nemo.asset.stats.speed[1]}`, 10, 30);
 	}
 }
 
@@ -432,6 +558,8 @@ Nemo.UpgradeState = class extends You.State {
 		context.fillStyle = '#fff';
 		context.textAlign = 'left';
 		context.textBaseline = 'middle';
+
+		context.fillText(`소지금: ${Nemo.asset.stats.money}`, You.canvas.width - 100, 30);
 		
 		context.fillText('크기 업그레이드', 10, 80 + 15);
 		context.fillText('이동속도 업그레이드', 10, 120 + 15);
@@ -476,6 +604,7 @@ Nemo.MainController = class extends You.Object {
 				stats.size[0]++;
 				stats.size[1] += stats.size[2];
 				stats.size[2] = stats.size[2] * (stats.size[0] + 1);
+				stats.money -= stats.size[3];
 				stats.size[3] = stats.size[3] * (stats.size[0] + 3);
 				scene.buttons.upgrade.size.setText('$' + stats.size[3]);
 			}
@@ -487,6 +616,7 @@ Nemo.MainController = class extends You.Object {
 				stats.speed[0]++;
 				stats.speed[1] += stats.speed[2];
 				stats.speed[2] = stats.speed[2] * (stats.speed[0] + 1);
+				stats.money -= stats.speed[3];
 				stats.speed[3] = stats.speed[3] * (stats.speed[0] + 3);
 				scene.buttons.upgrade.speed.setText('$' + stats.speed[3]);
 			}
@@ -692,7 +822,7 @@ Nemo.ObjectGenerator = class extends You.Object {
 			let prob_type = Math.random() * 100;
 			let type = prob_type > 5 ? 0 : prob_type > 3 ? 1 : 2;
 
-			let obj = new Nemo.GameObject('object');
+			let obj = new Nemo.NemoObject('object');
 			obj.transform.position = [x, y];
 			obj.addComponent(new Nemo.Rectangle('sr', size, size,
 				type == 0 ? 'rgb(255, ' + Math.floor(size / You.canvas.width * 1000) + ', 0)' :
@@ -701,11 +831,11 @@ Nemo.ObjectGenerator = class extends You.Object {
 			));
 			obj.addComponent(new Nemo.Moveable('m', [ direction_x, 0 ], random(20, 200)));
 			obj.addComponent(new Nemo.BoxCollider('bc', size, size));
-			obj.addComponent(new Nemo.NemoObject('n'));
+			// obj.addComponent(new Nemo.NemoObject('n'));
 			obj.tags.push(type == 0 ? 'normal' : type == 1 ? 'speedUp' : 'reset');
 			obj.hit = (...args) => obj.findComponent('bc')[0].hit(...args);
-			obj.growUp = () => obj.findComponent('n')[0].growUp();
-			obj.getArea = () => obj.findComponent('n')[0].getArea();
+			// obj.growUp = () => obj.findComponent('n')[0].growUp();
+			// obj.getArea = () => obj.findComponent('n')[0].getArea();
 			scene.objects.push(obj);
 		}
 	}

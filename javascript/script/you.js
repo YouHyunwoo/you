@@ -308,6 +308,27 @@ var You = {
 	},
 };
 
+You.Asset = class {
+	constructor() {
+		this.storage = window.localStorage;
+	}
+
+	set(key, value) {
+		this.storage.setItem(key, value);
+	}
+
+	get(key) {
+		return this.storage.getItem(key);
+	}
+
+	remove(key) {
+		return this.storage.removeItem(key);
+	}
+
+	clear() {
+		return this.storage.clear();
+	}
+};
 
 You.Object = class {
 	constructor(name) {
@@ -327,6 +348,10 @@ You.Object = class {
 		component.parent = this;
 		this.components.push(component);
 
+		if (component.name) {
+			this[component.name] = component;
+		}
+
 		return this;
 	}
 
@@ -337,7 +362,12 @@ You.Object = class {
 
 		let idx = this.components.indexOf(component);
 		if (idx > -1) {
-			this.components.splice(idx, 1).parent = null;
+			let component = this.components.splice(idx, 1);
+			component.parent = null;
+
+			if (component.name) {
+				delete this[component.name];
+			}
 		}
 
 		return this;
