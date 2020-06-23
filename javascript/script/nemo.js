@@ -12,12 +12,7 @@ var Nemo = {
 				money: 10000,
 			}
 		],
-		stats: {
-			size: [1, 10, 1, 100], // level, current, next, price
-			speed: [1, 100, 0.5, 100],
-			color: 'white',
-			money: 10000,
-		},
+		stats: null,
 		theme: {
 			red: {
 				backgroundColor: '#000',
@@ -46,7 +41,7 @@ var Nemo = {
 
 				if (this.prg_cont.isEmpty || this.prg_cont.isFull) { this.prg_cont.speed *= -1; }
 
-				if (You.input.key.down(Input.KEY_ENTER)) {
+				if (You.input.key.down()) {
 					You.scene.transit(Nemo.scene.character);
 				}
 			},
@@ -66,7 +61,7 @@ var Nemo = {
 
 				context.globalAlpha = this.prg_cont.rate;
 				context.font = "12px Arial";
-				context.fillText("press Enter to continue", You.canvas.width / 2, You.canvas.height * 3 / 4);
+				context.fillText("press any key to continue", You.canvas.width / 2, You.canvas.height * 3 / 4);
 
 				context.restore();
 			}
@@ -86,33 +81,28 @@ var Nemo = {
 					height: You.canvas.height - this.margin.top - this.margin.bottom
 				}
 
-				this.buttons = {
-					choices: {
-						stats: new You.Button('stats button')
-								.setPosition([10, 10])
-								.setSize([60, 50])
-								.setText('상태')
-								.setTextAlign('center')
-								.setTextVerticalAlign('middle')
-								.setBackgroundColor('rgba(255, 0, 0, 0.5)'),
-						upgrade: new You.Button('upgrade button')
-								.setPosition([80, 10])
-								.setSize([100, 50])
-								.setText('업그레이드')
-								.setTextAlign('center')
-								.setTextVerticalAlign('middle')
-								.setBackgroundColor('rgba(255, 0, 0, 0.5)'),
-						game: new You.Button('game button')
-								.setPosition([190, 10])
-								.setSize([80, 50])
-								.setText('게임 시작')
-								.setTextAlign('center')
-								.setTextVerticalAlign('middle')
-								.setBackgroundColor('rgba(255, 0, 0, 0.5)'),
-					}
-				};
+				this.choices = [];
 
-				this.controller = new Nemo.MainController('main controller', this);
+				for (let i = 0; i < Nemo.asset.characters.length; i++) {
+					let button = new You.Button('button')
+								.setPosition([this.margin.left, this.margin.top])
+								.setSize([this.inner.width, 80])
+								.setPadding([10, 10])
+								.setText(`소지금 ${Nemo.asset.characters[i].money}
+										크기 ${Nemo.asset.characters[i].size[1]}
+										이동속도 ${Nemo.asset.characters[i].speed[1]}`)
+								.setTextAlign('left')
+								.setTextVerticalAlign('top')
+								.setBackgroundColor('rgba(255, 255, 255, 0.1)');
+
+					button.addHandler(() => {
+						You.scene.transit(Nemo.scene.main, i);
+					});
+
+					this.choices.push(button);
+				}
+
+				this.controller = new Nemo.CharacterController('character controller', this);
 			},
 			out() {
 				this.controller = null;
@@ -126,7 +116,9 @@ var Nemo = {
 		},
 
 		main: {
-			in: function () {
+			in: function (characterIndex) {
+				Nemo.asset.stats = Nemo.asset.characters[characterIndex];
+
 				this.buttons = {
 					menu: {
 						stats: new You.Button('stats button')
@@ -147,6 +139,13 @@ var Nemo = {
 								.setPosition([190, 10])
 								.setSize([80, 50])
 								.setText('게임 시작')
+								.setTextAlign('center')
+								.setTextVerticalAlign('middle')
+								.setBackgroundColor('rgba(255, 0, 0, 0.5)'),
+						exit: new You.Button('exit button')
+								.setPosition([280, 10])
+								.setSize([80, 50])
+								.setText('게임 종료')
 								.setTextAlign('center')
 								.setTextVerticalAlign('middle')
 								.setBackgroundColor('rgba(255, 0, 0, 0.5)'),
@@ -401,6 +400,8 @@ Nemo.SelectState = class extends You.State {
 	}
 
 	onUpdate(delta) {
+		let scene = this.scene;
+
 		let mouse_event = You.input.mouse;
 		if (mouse_event) {
 			if (mouse_event[0] == 'up') {
@@ -409,33 +410,15 @@ Nemo.SelectState = class extends You.State {
 				let rx = mouse_event[1].clientX - rect.left;
 				let ry = mouse_event[1].clientY - rect.top;
 
-				Object.values(scene.buttons.menu).forEach((button) => button.handleMouse([rx, ry]));
+				Object.values(scene.choices).forEach((button) => button.handleMouse([rx, ry]));
 			}
 		}
 	}
 
 	onDraw(context) {
-		context.save();
+		let scene = this.scene;
 
-		context.beginPath();
-		context.rect(this.margin.left, this.margin.top, this.inner.width, this.inner.height);
-		context.clip();
-
-		context.font = '15px Arial';
-		context.textAlign = 'left';
-		context.textBaseline = 'top';
-		
-		for (let i = 0; i < Nemo.asset.characters.length; i++) {
-			context.fillStyle = 'rgba(255, 255, 255, 0.1)';
-			context.fillRect(this.margin.left, this.margin.top, this.inner.width, 100);
-
-			context.fillStyle = 'white';
-			context.fillText(`소지금 ${Nemo.asset.characters[i].money}`, this.margin.left + 10, this.margin.top + 10);
-			context.fillText(`크기 ${Nemo.asset.characters[i].size[1]}`, this.margin.left + 10, this.margin.top + 30);
-			context.fillText(`이동속도 ${Nemo.asset.characters[i].speed[1]}`, this.margin.left + 10, this.margin.top + 50);
-		}
-		
-		context.restore();
+		Object.values(scene.choices).forEach((button) => button.draw(context));
 	}
 }
 
@@ -449,8 +432,6 @@ Nemo.CharacterController = class extends You.Object {
 							.addComponent(new Nemo.SelectState('select state', scene));
 
 		this.states.transit('select state');
-
-		// scene.
 	}
 
 	onUpdate(delta) {
@@ -596,6 +577,10 @@ Nemo.MainController = class extends You.Object {
 
 		scene.buttons.menu.game.addHandler(() => {
 			You.scene.transit(Nemo.scene.game);
+		});
+
+		scene.buttons.menu.exit.addHandler(() => {
+			You.scene.transit(Nemo.scene.title);
 		});
 
 		scene.buttons.upgrade.size.addHandler(() => {

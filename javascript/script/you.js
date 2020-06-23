@@ -500,6 +500,7 @@ You.Text = class extends You.Object {
 
 		this.position = [0, 0];
 		this.size = null;
+		this.padding = [0, 0];
 
 		this.text = '';
 		this.font = '15px Arial';
@@ -508,6 +509,44 @@ You.Text = class extends You.Object {
 		this.textVerticalAlign = 'top';
 		this.textColor = 'white';
 		this.backgroundColor = 'black';
+	}
+
+	onDraw(context) {
+		context.save();
+
+		context.fillStyle = this.backgroundColor;
+		context.fillRect(...this.position, ...this.size);
+
+		context.font = this.font;
+		context.globalAlpha = this.textAlpha;
+		context.textAlign = this.textAlign;
+		context.textBaseline = this.size == null ? 'top' : this.textVerticalAlign;
+		context.fillStyle = this.textColor;
+		
+		let [tx, ty] = this.position;
+
+		let dx = { left: 0, center: 1, right: 2 };
+		tx += dx[this.textAlign] * this.size[0] / 2;
+		tx += (1 - dx[this.textAlign]) * this.padding[0];
+
+		let dy = { top: 0, middle: 1, bottom: 2};
+		ty += dy[this.textVerticalAlign] * this.size[1] / 2;
+		ty += (1 - dy[this.textVerticalAlign]) * this.padding[1];
+
+		context.beginPath();
+		context.rect(...this.position, ...this.size);
+		context.clip();
+
+		let textMetrics = context.measureText(this.text);
+		let textHeight = textMetrics.actualBoundingBoxAscent + textMetrics.actualBoundingBoxDescent;
+
+		let lines = this.text.split('\n');
+
+		for (let i = 0; i < lines.length; i++) {
+			context.fillText(lines[i], tx, ty + textHeight * i);
+		}
+
+		context.restore();
 	}
 
 	setPosition(position) {
@@ -522,8 +561,14 @@ You.Text = class extends You.Object {
 		return this;
 	}
 
+	setPadding(padding) {
+		this.padding = padding || [0, 0];
+
+		return this;
+	}
+
 	setText(text) {
-		this.text = text || '';
+		this.text = text.replace(/\t/g, '') || '';
 
 		return this;
 	}
@@ -562,35 +607,6 @@ You.Text = class extends You.Object {
 		this.backgroundColor = backgroundColor || 'black';
 
 		return this;
-	}
-
-	onDraw(context) {
-		context.save();
-
-		context.fillStyle = this.backgroundColor;
-		context.fillRect(...this.position, ...this.size);
-
-		context.font = this.font;
-		context.globalAlpha = this.textAlpha;
-		context.textAlign = this.textAlign;
-		context.textBaseline = this.size == null ? 'top' : this.textVerticalAlign;
-		context.fillStyle = this.textColor;
-		
-		let [tx, ty] = this.position;
-
-		let dx = { left: 0, center: 1, right: 2 };
-		tx += dx[this.textAlign] * this.size[0] / 2;
-
-		let dy = { top: 0, middle: 1, bottom: 2};
-		ty += dy[this.textVerticalAlign] * this.size[1] / 2;
-
-		context.beginPath();
-		context.rect(...this.position, ...this.size); ///
-		context.clip();
-
-		context.fillText(this.text, tx, ty);
-
-		context.restore();
 	}
 };
 

@@ -1,3 +1,7 @@
+function log(strings) {
+	console.log(strings.raw[0]);
+}
+
 function map2obj(m) {
 	let o = Object.create(null);
 	for (let [k, v] of m) { o[k] = v; }
