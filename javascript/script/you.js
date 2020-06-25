@@ -308,6 +308,96 @@ var You = {
 	},
 };
 
+You.Input = class {
+
+	static KEY_ENTER	= 13;
+	static KEY_ESCAPE	= 27;
+	static KEY_SPACE	= 32;
+	static KEY_LEFT		= 37;
+	static KEY_RIGHT	= 39;
+	static KEY_UP		= 38;
+	static KEY_DOWN		= 40;
+	static KEY			= (k) => k.charCodeAt();
+
+	static #keyboard;
+	static #mouse;
+
+	static in() {
+		this.#tkey = {
+			down: new Set(),
+			up: new Set(),
+		}
+		this.#key = {
+			down: new Set(),
+			press: new Set(),
+			up: new Set(),
+		};
+
+		this.key = () => ({
+			down: (keycode) => (keycode) ? this.#key.down.has(keycode) : this.#key.down.size > 0,
+			press: (keycode) => (keycode) ? this.#key.press.has(keycode) : this.#key.press.size > 0,
+			up: (keycode) => (keycode) ? this.#key.up.has(keycode) : this.#key.up.size > 0
+		});
+
+		this.#queue = {
+			key: [],
+			mouse: [],
+		};
+
+		this.#mouse = {
+			down: {},
+			move: {},
+			up: {},
+		}
+
+		window.addEventListener('keydown', (e) => {
+			let keycode = e.keyCode;
+
+			if (!(this.#key.down.has(keycode) || this.#key.press.has(keycode))) {
+				this.#tkey.down.add(keycode);
+			}
+		});
+		window.addEventListener('keyup', (e) => {
+			this.#tkey.up.add(e.keyCode);
+		});
+
+		window.addEventListener('mousedown', (e) => {
+			this.#queue.mouse.push([0, e]);
+		});
+		window.addEventListener('mousemove', (e) => {
+			this.#queue.mouse.push([1, e]);
+		});
+		window.addEventListener('mouseup', (e) => {
+			this.#queue.mouse.push([2, e]);
+		});
+	}
+
+	static update() {
+		// mouse
+		for (let e of this.queue.mouse) {
+			console.log(e); // check element
+
+			let [type, event] = e;
+			if (type == 0) {
+				// down
+			}
+			else if (type == 1) {
+				// move
+			}
+			else if (type == 2) {
+				// up
+			}
+		}
+	}
+
+	static clear() {
+
+	}
+};
+
+console.log(You.Input.in())
+
+
 You.Asset = class {
 	static set(key, value) {
 		window.localStorage.setItem(key, value);
