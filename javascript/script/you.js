@@ -238,6 +238,7 @@ var You = {
 
 		// Input
 		this.input.update();
+		You.Input.update();
 
 		// Update
 		this.scene.update((time_now - this.time_last) / 1000);
@@ -281,6 +282,7 @@ var You = {
 
 
 		this.input = new Input();
+		You.Input.in();
 
 		this.asset = new Asset();
 		
@@ -319,8 +321,9 @@ You.Input = class {
 	static KEY_DOWN		= 40;
 	static KEY			= (k) => k.charCodeAt();
 
-	static #keyboard;
-	static #mouse;
+	static #tkey;
+	static #key;
+	static #tmouse;
 
 	static in() {
 		this.#tkey = {
@@ -339,16 +342,18 @@ You.Input = class {
 			up: (keycode) => (keycode) ? this.#key.up.has(keycode) : this.#key.up.size > 0
 		});
 
-		this.#queue = {
-			key: [],
-			mouse: [],
+		this.#tmouse = {
+			down: null,
+			move: null,
+			up: null,
 		};
 
-		this.#mouse = {
-			down: {},
-			move: {},
-			up: {},
-		}
+		this.mouse = {
+			position: null,
+			down: null,
+			move: null,
+			up: null,
+		};
 
 		window.addEventListener('keydown', (e) => {
 			let keycode = e.keyCode;
@@ -357,46 +362,75 @@ You.Input = class {
 				this.#tkey.down.add(keycode);
 			}
 		});
+
 		window.addEventListener('keyup', (e) => {
 			this.#tkey.up.add(e.keyCode);
 		});
 
 		window.addEventListener('mousedown', (e) => {
-			this.#queue.mouse.push([0, e]);
+			this.mouse.position = [e.offsetX, e.offsetY];
+			this.#tmouse.down = [e.offsetX, e.offsetY];
 		});
+
 		window.addEventListener('mousemove', (e) => {
-			this.#queue.mouse.push([1, e]);
+			this.mouse.position = [e.offsetX, e.offsetY];
+			this.#tmouse.move = [e.offsetX, e.offsetY];
 		});
+
 		window.addEventListener('mouseup', (e) => {
-			this.#queue.mouse.push([2, e]);
+			this.mouse.position = [e.offsetX, e.offsetY];
+			this.#tmouse.up = [e.offsetX, e.offsetY];
 		});
 	}
 
 	static update() {
-		// mouse
-		for (let e of this.queue.mouse) {
-			console.log(e); // check element
+		this.#key.up.clear();
 
-			let [type, event] = e;
-			if (type == 0) {
-				// down
-			}
-			else if (type == 1) {
-				// move
-			}
-			else if (type == 2) {
-				// up
+		for (let v of this.#tkey.up) {
+			if (this.#key.press.has(v)) {
+				this.#key.up.add(v);
+				this.#key.press.delete(v);
+				this.#tkey.up.delete(v);
 			}
 		}
+
+		for (let v of this.#key.down) {
+			this.#key.press.add(v);
+		}
+
+		this.#key.down.clear();
+
+		for (let v of this.#tkey.down) {
+			this.#key.down.add(v);
+		}
+
+		this.#tkey.down.clear();
+
+		this.mouse.down = this.#tmouse.down;
+		this.#tmouse.down = null;
+
+		this.mouse.move = this.#tmouse.move;
+		this.#tmouse.move = null;
+
+		this.mouse.up = this.#tmouse.up;
+		this.#tmouse.up = null;
 	}
 
 	static clear() {
-
+		this.#tkey.down.clear();
+		this.#tkey.up.clear();
+		this.#key.down.clear();
+		this.#key.press.clear();
+		this.#key.up.clear();
+		this.#tmouse.down = null;
+		this.#tmouse.move = null;
+		this.#tmouse.up = null;
+		this.mouse.position = null;
+		this.mouse.down = null;
+		this.mouse.move = null;
+		this.mouse.up = null;
 	}
 };
-
-console.log(You.Input.in())
-
 
 You.Asset = class {
 	static set(key, value) {
