@@ -18,14 +18,48 @@ var UIEditor = {
 	scene: {
 		main: {
 			in() {
-				this.drag = null;
-				this.ip = null;
-				this.drag_rect = null;
+				document.getElementById('move').addEventListener('click', (e) => {
+					this.tool.type = 'move';
+				});
+
+				document.getElementById('rect').addEventListener('click', (e) => {
+					this.tool.type = 'rect';
+				});
+
+				document.getElementById('text').addEventListener('click', (e) => {
+					this.tool.type = 'text';
+				});
+
+				document.getElementById('button').addEventListener('click', (e) => {
+					this.tool.type = 'button';
+				});
+
+				// this.drag = null;
+				// this.ip = null;
+				// this.drag_rect = null;
+				// this.selected = null;
+
+				this.tool = {
+					type: 'move',
+					move: {
+						drag: false,
+						mousePosition: null,
+						objectPosition: null,
+						object: null,
+						selected: null
+					},
+					rect: {
+						object: null,
+					}
+				}
 
 				this.grid = new UI.Grid('grid', 20, 20);
 				
+				this.ui = [];
+
 				// Rectangle
 				this.rect = new UI.Rectangle('r1', [20, 20], [40, 40], 'red');
+				// this.ui.push(this.rect);
 				
 				// Text
 				// Button
@@ -35,31 +69,48 @@ var UIEditor = {
 				
 			},
 			update(delta) {
-				let mouse = You.input.mouse;
-				if (mouse) {
-					if (mouse[0] == 'down') {
-						this.ip = Array.from(this.rect.transform.position);
-						this.drag = [mouse[1].offsetX, mouse[1].offsetY];
-					}
-					else if (mouse[0] == 'move') {
-						if (this.drag) {
-							let [x, y] = [mouse[1].offsetX, mouse[1].offsetY];
-							let [ox, oy] = this.ip;
-
-							this.rect.transform.position = [ox+x-this.drag[0], oy+y-this.drag[1]];
+				let mouse = You.Input.mouse;
+				if (this.tool.type == 'move') {
+					if (mouse.down) {
+						if (this.tool.move.selected) {
+							this.tool.move.objectPosition = Array.from(this.rect.transform.position);
+							this.tool.move.mousePosition = mouse.down;
+							this.tool.move.drag = true;
 						}
 					}
-					else if (mouse[0] == 'up') {
-						if (this.drag) {
-							let [x, y] = [mouse[1].offsetX, mouse[1].offsetY];
-							let [ox, oy] = this.ip;
+					if (mouse.move) {
+						this.tool.move.selected = null;
+						for (let o of this.ui) {
+							if (o.contain(mouse.move)) {
+								this.tool.move.selected = o;
+								break;
+							}
+						}
 
-							this.rect.transform.position = [ox+x-this.drag[0], oy+y-this.drag[1]];
+						if (this.tool.move.drag) {
+							let [startX, startY] = this.tool.move.mousePosition;
+							let [mouseX, mouseY] = mouse.move;
+							let [objectX, objectY] = this.tool.move.objectPosition;
+
+							this.rect.transform.position = [objectX+mouseX-startX, objectY+mouseY-startY];
+						}
+					}
+					if (mouse.up) {
+						if (this.tool.move.drag) {
+							let [startX, startY] = this.tool.move.mousePosition;
+							let [mouseX, mouseY] = mouse.up;
+							let [objectX, objecyY] = this.tool.move.objectPosition;
+
+							this.rect.transform.position = [objectX+mouseX-startX, objecyY+mouseY-startY];
 
 							this.ip = null;
-							this.drag = null;
+
+							this.tool.move.drag = false;
 						}
 					}
+				}
+				else if (this.tool.type == 'rect') {
+
 				}
 			},
 			draw(context) {
@@ -67,19 +118,29 @@ var UIEditor = {
 
 				this.grid.draw(context);
 
-				let old = this.rect.transform.position;
+				if (this.tool.type == 'move') {
+					let old = this.rect.transform.position;
 
-				if (this.drag) {
+					if (this.tool.move.drag) {
+						this.rect.draw(context);
+						context.globalAlpha = 0.5;
+					}
+
+					this.rect.transform.position = this.grid.fit(this.rect);
 					this.rect.draw(context);
-					context.globalAlpha = 0.5;
+
+					if (this.tool.move.drag) {
+						this.rect.transform.position = old;
+					}
+
+					if (this.selected) {
+						context.globalAlpha = 1;
+						context.strokeStyle = 'rgba(0, 255, 0, 1)';
+						context.strokeRect(...this.selected.transform.position, ...this.selected.transform.size);
+					}
 				}
+				else if (this.tool.type == 'rect') {
 
-				let fit = this.grid.fit(this.rect);
-				this.rect.transform.position = fit;
-				this.rect.draw(context);
-
-				if (this.drag) {
-					this.rect.transform.position = old;
 				}
 
 				context.restore();
@@ -105,8 +166,12 @@ UI.Rectangle = class extends You.Object {
 	onDraw(context) {
 		context.fillStyle = this.color;
 
-		// console.log(this.transform.position)
 		context.fillRect(...this.transform.position, ...this.transform.size);
+	}
+
+	contain(point) {
+		return this.transform.position[0] < point[0] && point[0] < this.transform.position[0] + this.transform.size[0] &&
+			this.transform.position[1] < point[1] && point[1] < this.transform.position[1] + this.transform.size[1];
 	}
 };
 
