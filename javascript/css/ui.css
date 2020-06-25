@@ -1,0 +1,20 @@
+body {
+	background-color: #111;
+}
+
+#canvas {
+	position: absolute;
+	background-color: black;
+	border: 1px solid #222222;
+}
+
+div.toolbar {
+	position: absolute;
+	width: 100px;
+	background-color: #333;
+	text-align: center;
+}
+
+div.toolbar > input[type=button] {
+	width: 80px;
+}

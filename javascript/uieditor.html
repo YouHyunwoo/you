@@ -6,8 +6,9 @@
 
 		<link href="https://fonts.googleapis.com/css?family=Nanum+Gothic|Nanum+Myeongjo&display=swap&subset=korean" rel="stylesheet">
 
-		<link type="text/css" rel="stylesheet" href="css/you.css">
+		<link type="text/css" rel="stylesheet" href="css/ui.css">
 
+		<script type="text/javascript" src="script/vector.js"></script>
 		<script type="text/javascript" src="script/common.js"></script>
 		<script type="text/javascript" src="script/you.js"></script>
 		<script type="text/javascript" src="script/uieditor.js"></script>
@@ -18,5 +19,12 @@
 	</head>
 	<body>
 		<canvas id="canvas">이 브라우저는 HTML5의 Canvas를 지원하지 않습니다.</canvas>
+
+		<div class="toolbar">
+			<input type="button" id="move" value="이동" />
+			<input type="button" id="rect" value="사각형" />
+			<input type="button" id="text" value="텍스트" />
+			<input type="button" id="button" value="버튼" />
+		</div>
 	</body>
 </html>
