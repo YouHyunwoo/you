@@ -259,7 +259,7 @@ var You = {
 		this.display_handler = window.requestAFrame(() => this.loop());
 	},
 
-	in: function () {
+	in: function (scene) {
 		this.canvas = document.getElementById("canvas");
 		this.context = this.canvas.getContext("2d");
 
@@ -284,7 +284,7 @@ var You = {
 
 		this.asset = new Asset();
 		
-		this.scene = new Scene(Nemo.scene.title);
+		this.scene = new Scene(scene);
 
 		
 		this.time_last = Date.now();
@@ -309,24 +309,20 @@ var You = {
 };
 
 You.Asset = class {
-	constructor() {
-		this.storage = window.localStorage;
+	static set(key, value) {
+		window.localStorage.setItem(key, value);
 	}
 
-	set(key, value) {
-		this.storage.setItem(key, value);
+	static get(key) {
+		return window.localStorage.getItem(key);
 	}
 
-	get(key) {
-		return this.storage.getItem(key);
+	static remove(key) {
+		window.localStorage.removeItem(key);
 	}
 
-	remove(key) {
-		return this.storage.removeItem(key);
-	}
-
-	clear() {
-		return this.storage.clear();
+	static clear() {
+		window.localStorage.clear();
 	}
 };
 
@@ -652,6 +648,3 @@ You.Button = class extends You.Text {
 		}
 	}
 };
-
-
-window.addEventListener('DOMContentLoaded', () => You.in());

@@ -12,7 +12,7 @@ var Nemo = {
 				money: 10000,
 			}
 		],
-		stats: null,
+		character: null,
 		theme: {
 			red: {
 				backgroundColor: '#000',
@@ -27,25 +27,20 @@ var Nemo = {
 	scene: {
 		title: {
 			in() {
-				this.prg_cont = new Progress(2, 8, 10, 2, { begin: false, end: false });
-
-				return this;
+				this.prgMessage = new Progress(2, 8, 10, 2, { begin: false, end: false });
 			},
-
 			out() {
-				this.prg_cont = null;
+				this.prgMessage = null;
 			},
-
 			update(delta) {
-				this.prg_cont.update(delta);
+				this.prgMessage.update(delta);
 
-				if (this.prg_cont.isEmpty || this.prg_cont.isFull) { this.prg_cont.speed *= -1; }
+				if (this.prgMessage.isEmpty || this.prgMessage.isFull) { this.prgMessage.speed *= -1; }
 
-				if (You.input.key.down()) {
+				if (You.input.key.down(Input.KEY_ENTER)) {
 					You.scene.transit(Nemo.scene.character);
 				}
 			},
-
 			draw(context) {
 				context.save();
 
@@ -59,9 +54,9 @@ var Nemo = {
             	context.textBaseline = "middle";
 				context.fillText("Nemo", You.canvas.width / 2, You.canvas.height / 3);
 
-				context.globalAlpha = this.prg_cont.rate;
+				context.globalAlpha = this.prgMessage.rate;
 				context.font = "12px Arial";
-				context.fillText("press any key to continue", You.canvas.width / 2, You.canvas.height * 3 / 4);
+				context.fillText("press Enter key to continue", You.canvas.width / 2, You.canvas.height * 3 / 4);
 
 				context.restore();
 			}
@@ -116,9 +111,11 @@ var Nemo = {
 		},
 
 		main: {
-			in: function (characterIndex) {
-				Nemo.asset.stats = Nemo.asset.characters[characterIndex];
-
+			in(characterIndex) {
+				if (characterIndex != undefined) {
+					Nemo.asset.character = Nemo.asset.characters[characterIndex];
+				}
+				
 				this.buttons = {
 					menu: {
 						stats: new You.Button('stats button')
@@ -154,14 +151,14 @@ var Nemo = {
 						size: new You.Button('upgrade button')
 								.setPosition([160, 80])
 								.setSize([100, 30])
-								.setText(`$${Nemo.asset.stats.size[3]}`)
+								.setText(`$${Nemo.asset.character.size[3]}`)
 								.setTextAlign('center')
 								.setTextVerticalAlign('middle')
 								.setBackgroundColor('rgba(255, 0, 0, 0.5)'),
 						speed: new You.Button('upgrade button')
 								.setPosition([160, 120])
 								.setSize([100, 30])
-								.setText(`$${Nemo.asset.stats.speed[3]}`)
+								.setText(`$${Nemo.asset.character.speed[3]}`)
 								.setTextAlign('center')
 								.setTextVerticalAlign('middle')
 								.setBackgroundColor('rgba(255, 0, 0, 0.5)'),
@@ -170,28 +167,25 @@ var Nemo = {
 
 				this.controller = new Nemo.MainController('main controller', this);
 			},
-
-			out: function () {
+			out() {
 				this.controller = null;
 			},
-
-			update: function (delta) {
+			update(delta) {
 				this.controller.update(delta);
 			},
-
-			draw: function (context) {
+			draw(context) {
 				this.controller.draw(context);
-			},
+			}
 		},
 
 		game: {
 			in: function() {
 				this.score = 0;
 
-				let size = Nemo.asset.stats.size[1];
-				let color = Nemo.asset.stats.color;
+				let size = Nemo.asset.character.size[1];
+				let color = Nemo.asset.character.color;
 
-				this.character = new Nemo.NemoObject('player'); // NemoObject
+				this.character = new Nemo.NemoObject('player');
 				this.character.transform.position = [ (You.canvas.width - 10) / 2, (You.canvas.height - 10) / 2 ];
 				this.character.addComponent(new Nemo.Rectangle('sr', size, size, color));
 				this.character.addComponent(new Nemo.BoxCollider('bc', size, size));
@@ -208,7 +202,7 @@ var Nemo = {
 			},
 
 			out: function() {
-				Nemo.asset.stats.money += parseInt(this.score / 10);
+				Nemo.asset.character.money += parseInt(this.score / 10);
 				this.score = 0;
 
 				this.character = null;
@@ -232,63 +226,55 @@ var Nemo = {
 
 		game_over: {
 			// bgm: new Audio("audio/Dana.mp3"),
-			score: 0,
-			state: null,
-
-			in: function(score, state) {
+			in(score, result) {
 				// this.bgm.currentTime = 0;
 				// this.bgm.play();
 				this.score = score;
-				this.state = state;
-				this.prg_title = new Progress(0, 1, 5, null, { begin: false, end: false });
-				this.prg_cont = new Progress(2, 8, 10, 2, { begin: false, end: false });
+				this.result = result;
 
-				return this;
+				this.prgTitle = new Progress(0, 1, 5, null, { begin: false, end: false });
+				this.prgMessage = new Progress(2, 8, 10, 2, { begin: false, end: false });
 			},
-
-			out: function() {
+			out() {
 				// this.bgm.pause();
 				// this.bgm.currentTime = 0;
 				this.score = 0;
-				this.state = null;
-				this.prg_title = null;
-				this.prg_cont = null;
+				this.result = null;
+				this.prgTitle = null;
+				this.prgMessage = null;
 			},
+			update(delta) {
+				this.prgTitle.update(delta);
+				this.prgMessage.update(delta);
 
-			update: function(delta) {
-				this.prg_title.update(delta);
-				this.prg_cont.update(delta);
-
-				if (this.prg_cont.isEmpty || this.prg_cont.isFull) { this.prg_cont.speed *= -1; }
+				if (this.prgMessage.isEmpty || this.prgMessage.isFull) { this.prgMessage.speed *= -1; }
 
 				if (You.input.key.down(Input.KEY_ENTER)) {
-					if (this.prg_title.isFull) {
+					if (this.prgTitle.isFull) {
 						You.scene.transit(Nemo.scene.main);
 						return;
 					}
 				}
 			},
-
-			draw: function(context) {
-				context.globalAlpha = this.prg_title.rate;
+			draw(context) {
+				context.globalAlpha = this.prgTitle.rate;
 				context.font = "24px Arial";
 				context.fillStyle = "#fff";
 				context.textAlign = "center";
             	context.textBaseline = "middle";
-				context.fillText(this.state, You.canvas.width / 2, You.canvas.height / 3);
+				context.fillText(this.result, You.canvas.width / 2, You.canvas.height / 3);
 
-				if (this.prg_title.isFull) {
-					context.globalAlpha = this.prg_cont.rate;
+				if (this.prgTitle.isFull) {
+					context.globalAlpha = this.prgMessage.rate;
 					context.font = "12px Arial";
-					context.fillText("press Enter to continue", You.canvas.width / 2, You.canvas.height * 3 / 4);
+					context.fillText("press Enter key to continue", You.canvas.width / 2, You.canvas.height * 3 / 4);
 				}
 
 				context.globalAlpha = 1;
 				context.font = "14px Arial";
-				context.textBaseline = "top";
 				context.fillText("Score ", You.canvas.width / 2, You.canvas.height / 2);
-				context.fillText("" + Math.floor(this.score), You.canvas.width / 2, You.canvas.height / 2 + 20);
-			},
+				context.fillText(`${Math.floor(this.score)}`, You.canvas.width / 2, You.canvas.height / 2 + 20);
+			}
 		}
 	}
 };
@@ -308,7 +294,7 @@ Nemo.Rectangle = class extends You.Object {
 		context.fillStyle = this.color;
 		context.fillRect(this.parent.transform.position[0], this.parent.transform.position[1], this.width, this.height);
 	}
-}
+};
 
 Nemo.GameObject = class extends You.Object {
 	constructor(name) {
@@ -320,7 +306,7 @@ Nemo.GameObject = class extends You.Object {
 			rotate: [ 0, 0 ],
 		};
 	}
-}
+};
 
 Nemo.Moveable = class extends You.Object {
 	constructor(name, direction, speed) {
@@ -334,7 +320,7 @@ Nemo.Moveable = class extends You.Object {
 		this.parent.transform.position[0] += this.direction[0] * this.speed * delta;
 		this.parent.transform.position[1] += this.direction[1] * this.speed * delta;
 	}
-}
+};
 
 Nemo.Collider = class extends You.Object {
 	constructor(name) {
@@ -344,7 +330,7 @@ Nemo.Collider = class extends You.Object {
 	hit(collider) {
 
 	}
-}
+};
 
 Nemo.BoxCollider = class extends Nemo.Collider {
 	constructor(name, width, height) {
@@ -369,7 +355,7 @@ Nemo.BoxCollider = class extends Nemo.Collider {
 			return this.hit(collider.findComponent('bc')[0]);
 		}
 	}
-}
+};
 
 Nemo.NemoObject = class extends Nemo.GameObject {
 	constructor(name) {
@@ -389,7 +375,7 @@ Nemo.NemoObject = class extends Nemo.GameObject {
 		let sr = this.findComponent('sr')[0];
 		return sr.width * sr.height;
 	}
-}
+};
 
 // Character Scene
 Nemo.SelectState = class extends You.State {
@@ -420,7 +406,7 @@ Nemo.SelectState = class extends You.State {
 
 		Object.values(scene.choices).forEach((button) => button.draw(context));
 	}
-}
+};
 
 Nemo.CharacterController = class extends You.Object {
 	constructor(name, scene) {
@@ -441,7 +427,7 @@ Nemo.CharacterController = class extends You.Object {
 	onDraw(context) {
 		this.states.draw(context);
 	}
-}
+};
 
 // Main Scene
 Nemo.StatsState = class extends You.State {
@@ -450,8 +436,8 @@ Nemo.StatsState = class extends You.State {
 
 		this.scene = scene;
 
-		let size = Nemo.asset.stats.size[1];
-		let color = Nemo.asset.stats.color;
+		let size = Nemo.asset.character.size[1];
+		let color = Nemo.asset.character.color;
 
 		this.model = new Nemo.GameObject('player');
 		this.model.transform.position = [ -size / 2, -size / 2 ];
@@ -484,7 +470,7 @@ Nemo.StatsState = class extends You.State {
 		context.textAlign = 'left';
 		context.textBaseline = 'middle';
 
-		context.fillText(`소지금: ${Nemo.asset.stats.money}`, You.canvas.width - 100, 30);
+		context.fillText(`소지금: ${Nemo.asset.character.money}`, You.canvas.width - 100, 30);
 
 		context.save();
 
@@ -500,10 +486,10 @@ Nemo.StatsState = class extends You.State {
 
 		context.textBaseline = 'top';
 
-		context.fillText(`크기: ${Nemo.asset.stats.size[1]}`, 10, 10);
-		context.fillText(`이동속도: ${Nemo.asset.stats.speed[1]}`, 10, 30);
+		context.fillText(`크기: ${Nemo.asset.character.size[1]}`, 10, 10);
+		context.fillText(`이동속도: ${Nemo.asset.character.speed[1]}`, 10, 30);
 	}
-}
+};
 
 Nemo.UpgradeState = class extends You.State {
 	constructor(name, scene) {
@@ -540,14 +526,14 @@ Nemo.UpgradeState = class extends You.State {
 		context.textAlign = 'left';
 		context.textBaseline = 'middle';
 
-		context.fillText(`소지금: ${Nemo.asset.stats.money}`, You.canvas.width - 100, 30);
+		context.fillText(`소지금: ${Nemo.asset.character.money}`, You.canvas.width - 100, 30);
 		
 		context.fillText('크기 업그레이드', 10, 80 + 15);
 		context.fillText('이동속도 업그레이드', 10, 120 + 15);
 
 		Object.values(scene.buttons.upgrade).forEach((button) => button.draw(context));
 	}
-}
+};
 
 Nemo.MainController = class extends You.Object {
 	constructor(name, scene) {
@@ -584,7 +570,7 @@ Nemo.MainController = class extends You.Object {
 		});
 
 		scene.buttons.upgrade.size.addHandler(() => {
-			let stats = Nemo.asset.stats;
+			let stats = Nemo.asset.character;
 			if (stats.size[0] < 10 && stats.money >= stats.size[3]) {
 				stats.size[0]++;
 				stats.size[1] += stats.size[2];
@@ -596,7 +582,7 @@ Nemo.MainController = class extends You.Object {
 		});
 
 		scene.buttons.upgrade.speed.addHandler(() => {
-			let stats = Nemo.asset.stats;
+			let stats = Nemo.asset.character;
 			if (stats.speed[0] < 10 && stats.money >= stats.speed[3]) {
 				stats.speed[0]++;
 				stats.speed[1] += stats.speed[2];
@@ -615,7 +601,7 @@ Nemo.MainController = class extends You.Object {
 	onDraw(context) {
 		this.states.draw(context);
 	}
-}
+};
 
 // Game Scene
 Nemo.GameState = class extends You.State {
@@ -711,7 +697,7 @@ Nemo.GameState = class extends You.State {
 		context.textAlign = 'right';
 		context.fillText('' + Math.floor(scene.objects.length), 100, 30);
 	}
-}
+};
 
 Nemo.MenuState = class extends You.State {
 	constructor(name, scene) {
@@ -735,37 +721,7 @@ Nemo.MenuState = class extends You.State {
 		context.fillStyle = '#555';
 		context.fillRect((You.canvas.width - 200) / 2, 100, 200, 300);
 	}
-}
-
-Nemo.GameController = class extends You.Object {
-	constructor(name, scene) {
-		super(name);
-
-		this.scene = scene;
-
-		this.states = new You.State.Context('state context');
-
-		this.gameState = new Nemo.GameState('game state', scene);
-		this.menuState = new Nemo.MenuState('menu state', scene);
-
-		this.states.addComponent(this.gameState);
-		this.states.addComponent(this.menuState);
-
-		this.states.transit('game state');
-	}
-
-	onUpdate(delta) {
-		this.states.update(delta);
-	}
-
-	onDraw(context) {
-		this.gameState.draw(context);
-
-		if (this.states.state.name == 'menu state') {
-			this.menuState.draw(context);
-		}
-	}
-}
+};
 
 Nemo.ObjectGenerator = class extends You.Object {
 	constructor(name, scene) {
@@ -824,4 +780,34 @@ Nemo.ObjectGenerator = class extends You.Object {
 			scene.objects.push(obj);
 		}
 	}
-}
+};
+
+Nemo.GameController = class extends You.Object {
+	constructor(name, scene) {
+		super(name);
+
+		this.scene = scene;
+
+		this.states = new You.State.Context('state context');
+
+		this.gameState = new Nemo.GameState('game state', scene);
+		this.menuState = new Nemo.MenuState('menu state', scene);
+
+		this.states.addComponent(this.gameState);
+		this.states.addComponent(this.menuState);
+
+		this.states.transit('game state');
+	}
+
+	onUpdate(delta) {
+		this.states.update(delta);
+	}
+
+	onDraw(context) {
+		this.gameState.draw(context);
+
+		if (this.states.state.name == 'menu state') {
+			this.menuState.draw(context);
+		}
+	}
+};
