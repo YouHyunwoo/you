@@ -53,6 +53,9 @@ var UIEditor = {
 					}
 				}
 
+				// panel
+				this.panel = null;
+
 				this.grid = new UI.Grid('grid', 20, 20);
 				
 				this.ui = [];
@@ -150,6 +153,44 @@ var UIEditor = {
 };
 
 var UI = {};
+
+UI.Area = class extends You.Object {
+	constructor(name) {
+		super(name);
+
+		this.transform = transform;
+	}
+
+	draw(context, ...args) {
+		context.save();
+
+		context.translate(...this.transform.position);
+		context.scale(...this.transform.scale);
+		context.rotate(...this.transform.rotate);
+
+		this.onDraw(context, ...args);
+		this.components.forEach((c) => c.draw(context, ...args));
+
+		context.restore();
+	}
+
+	intersect(other) {
+		if (other instanceof UI.Area) {
+			return 
+		}
+
+		return null;
+	}
+
+	contain(point) {
+		return this.transform.position[0] < point[0] && point[0] < this.transform.position[0] + this.transform.size[0] &&
+			this.transform.position[1] < point[1] && point[1] < this.transform.position[1] + this.transform.size[1];
+	}
+}
+
+UI.Panel = class extends UI.Area {
+
+}
 
 UI.Rectangle = class extends You.Object {
 	constructor(name, position, size, color) {
