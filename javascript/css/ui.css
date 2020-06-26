@@ -1,5 +1,10 @@
 body {
 	background-color: #111;
+	color: white;
+}
+
+p {
+	margin: 0;
 }
 
 #canvas {
@@ -10,11 +15,40 @@ body {
 
 div.toolbar {
 	position: absolute;
-	width: 100px;
+	width: 150px;
 	background-color: #333;
+	text-align: center;
+	padding: 10px;
+}
+
+div.toolbar > p {
+	margin-bottom: 10px;
+}
+
+div.toolbar > div.toolbar-list > input[type=button] {
+	width: 100%;
+}
+
+div.tool {
+	display: none;
+	position: absolute;
+	width: 150px;
+	background-color: #333;
+	top: 200px;
+	padding: 10px;
+}
+
+div.tool > p {
+	margin-bottom: 10px;
 	text-align: center;
 }
 
-div.toolbar > input[type=button] {
-	width: 80px;
+div.tool-property {
+	display: flex;
+	flex-flow: column;
+	margin-bottom: 10px;
+}
+
+div.tool-property input {
+	width: 80%;
 }

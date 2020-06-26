@@ -21,10 +21,55 @@
 		<canvas id="canvas">이 브라우저는 HTML5의 Canvas를 지원하지 않습니다.</canvas>
 
 		<div class="toolbar">
-			<input type="button" id="move" value="이동" />
-			<input type="button" id="rect" value="사각형" />
-			<input type="button" id="text" value="텍스트" />
-			<input type="button" id="button" value="버튼" />
+			<p>도구</p>
+			<div class='toolbar-list'>
+				<input type="button" id="move" value="이동" />
+				<input type="button" id="rectangle" value="사각형" />
+				<input type="button" id="text" value="텍스트" />
+				<input type="button" id="button" value="버튼" />
+			</div>
+		</div>
+		<div class="tool rectangle">
+			<p>사각형</p>
+			<div class="tool-property color">
+				<label>
+					<p>색상</p>
+					<input type="text" value="" />
+				</label>
+			</div>
+		</div>
+		<div class="tool text">
+			<p>텍스트</p>
+			<div class="tool-property text">
+				<label>
+					<p>글</p>
+					<input type="text" value="" />
+				</label>
+			</div>
+			<div class="tool-property align">
+				<label>
+					<p>가로 정렬</p>
+					<input type="text" value="" />
+				</label>
+			</div>
+			<div class="tool-property valign">
+				<label>
+					<p>세로 정렬</p>
+					<input type="text" value="" />
+				</label>
+			</div>
+			<div class="tool-property color">
+				<label>
+					<p>글자색</p>
+					<input type="text" value="" placeholder="white" />
+				</label>
+			</div>
+			<div class="tool-property bgcolor">
+				<label>
+					<p>배경색</p>
+					<input type="text" value="" />
+				</label>
+			</div>
 		</div>
 	</body>
 </html>

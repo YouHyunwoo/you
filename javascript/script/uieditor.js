@@ -18,132 +18,294 @@ var UIEditor = {
 	scene: {
 		main: {
 			in() {
+				this.tool = {
+					types: [ 'move', 'rectangle', 'text', 'button' ],
+					type: null,
+				};
+
+				this.tool.types.forEach((t) => {
+					document.getElementById(t).addEventListener('click', (e) => { this.tool.type = t; });
+				});
+
 				document.getElementById('move').addEventListener('click', (e) => {
 					this.tool.type = 'move';
 				});
 
-				document.getElementById('rect').addEventListener('click', (e) => {
-					this.tool.type = 'rect';
+				document.getElementById('rectangle').addEventListener('click', (e) => {
+					this.tool.type = 'rectangle';
+
+					document.querySelectorAll('div.tool').forEach((e) => { e.style.display = 'none'; });
+					document.querySelector('div.tool.rectangle').style.display = 'block';
+
+					let color = document.querySelector('div.tool.rectangle .color input').value || null;
+
+					this.tool.rectangle.object = new UI.Rectangle('rect').setColor(color);
 				});
 
 				document.getElementById('text').addEventListener('click', (e) => {
 					this.tool.type = 'text';
+
+					document.querySelectorAll('div.tool').forEach((e) => { e.style.display = 'none'; });
+					document.querySelector('div.tool.text').style.display = 'block';
+
+					let text = document.querySelector('div.tool.text .text input').value;
+					let align = document.querySelector('div.tool.text .align input').value || 'left';
+					let valign = document.querySelector('div.tool.text .valign input').value || 'top';
+					let color = document.querySelector('div.tool.text .color input').value || 'white';
+					let bgcolor = document.querySelector('div.tool.text .bgcolor input').value || null;
+
+					this.tool.text.object = new You.Text('text')
+												.setText(text)
+												.setAlign(align)
+												.setVAlign(valign)
+												.setColor(color)
+												.setBackgroundColor(bgcolor);
 				});
 
-				document.getElementById('button').addEventListener('click', (e) => {
-					this.tool.type = 'button';
-				});
+				this.tool.type = this.tool.types[0];
 
-				// this.drag = null;
-				// this.ip = null;
-				// this.drag_rect = null;
-				// this.selected = null;
+				this.tool.move = {
+					drag: false,
+					position: null,
+					start: null,
+					selected: null
+				};
 
-				this.tool = {
-					type: 'move',
-					move: {
-						drag: false,
-						mousePosition: null,
-						objectPosition: null,
-						object: null,
-						selected: null
-					},
-					rect: {
-						object: null,
-					}
-				}
+				this.tool.rectangle = {
+					drag: false,
+				};
 
-				// panel
-				this.panel = null;
+				this.tool.text = {
+					drag: false,
+				};
 
-				this.grid = new UI.Grid('grid', 20, 20);
-				
-				this.ui = [];
+				// Panel
+				this.panel = new UI.Panel('panel').setSize([200, 200]);
 
-				// Rectangle
-				this.rect = new UI.Rectangle('r1', [20, 20], [40, 40], 'red');
-				// this.ui.push(this.rect);
-				
-				// Text
+				this.panel.clip = false;
+				this.panel.position = [
+					(You.canvas.width - this.panel.width) / 2,
+					(You.canvas.height - this.panel.height) / 2
+				];
+
 				// Button
-				// Grid
 			},
 			out() {
-				
+				this.tool = null;
+
+				this.panel = null;
 			},
 			update(delta) {
 				let mouse = You.Input.mouse;
+
 				if (this.tool.type == 'move') {
-					if (mouse.down) {
-						if (this.tool.move.selected) {
-							this.tool.move.objectPosition = Array.from(this.rect.transform.position);
-							this.tool.move.mousePosition = mouse.down;
-							this.tool.move.drag = true;
+					use(this.tool.move, function (scene) {
+						if (mouse.down) {
+							if (this.drag == false) {
+								if (this.selected) {
+									this.position = Array.from(this.selected.position);
+									this.positionBeforeFit = Array.from(this.selected.position);
+									this.start = mouse.down;
+									this.selected.alpha = 0.5;
+
+									this.drag = true;
+								}
+							}
+
+							scene.panel.fitAll();
 						}
-					}
-					if (mouse.move) {
-						this.tool.move.selected = null;
-						for (let o of this.ui) {
-							if (o.contain(mouse.move)) {
-								this.tool.move.selected = o;
-								break;
+
+						if (mouse.move) {
+							if (this.drag) {
+								this.selected.position = this.position.addv(mouse.move.subv(this.start));
+								this.positionBeforeFit = Array.from(this.selected.position);
+							}
+							else {
+								this.selected = null;
+
+								for (let i = scene.panel.components.length-1; i >= 0; i--) {
+									if (scene.panel.components[i].contain(scene.panel.globalToLocal(mouse.move))) {
+										this.selected = scene.panel.components[i];
+										break;
+									}
+								}
+							}
+
+							scene.panel.fitAll();
+						}
+
+						if (mouse.up) {
+							if (this.drag) {
+								this.selected.position = this.position.addv(mouse.up.subv(this.start));
+								this.selected.alpha = 1;
+
+								this.drag = false;
+							}
+
+							scene.panel.fitAll();
+						}
+					}, this);
+				}
+				else if (this.tool.type == 'rectangle') {
+					use(this.tool.rectangle, function (scene) {
+						if (mouse.down) {
+							if (this.drag == false) {
+								this.start = mouse.down;
+
+								let color = document.querySelector('div.tool.rectangle .color input').value || null;
+
+								this.object.setColor(color);
+
+								this.drag = true;
 							}
 						}
 
-						if (this.tool.move.drag) {
-							let [startX, startY] = this.tool.move.mousePosition;
-							let [mouseX, mouseY] = mouse.move;
-							let [objectX, objectY] = this.tool.move.objectPosition;
+						if (mouse.move) {
+							if (this.drag) {
+								let start = [...this.start];
+								let end = mouse.move;
 
-							this.rect.transform.position = [objectX+mouseX-startX, objectY+mouseY-startY];
+								if (start[0] > end[0]) {
+									[start[0], end[0]] = [end[0], start[0]];
+								}
+
+								if (start[1] > end[1]) {
+									[start[1], end[1]] = [end[1], start[1]];
+								}
+
+								let interval = [scene.panel.grid.columnInterval, scene.panel.grid.rowInterval];
+
+								start = scene.panel.grid.fit(scene.panel.globalToLocal(start));
+								end = scene.panel.grid.fit(scene.panel.globalToLocal(end));
+
+								this.object.position = start;
+								this.object.size = end.addv(interval).subv(start);
+							}
 						}
-					}
-					if (mouse.up) {
-						if (this.tool.move.drag) {
-							let [startX, startY] = this.tool.move.mousePosition;
-							let [mouseX, mouseY] = mouse.up;
-							let [objectX, objecyY] = this.tool.move.objectPosition;
 
-							this.rect.transform.position = [objectX+mouseX-startX, objecyY+mouseY-startY];
+						if (mouse.up) {
+							if (this.drag) {
+								if (this.object) {
+									scene.panel.addComponents(this.object);
+								}
+								
+								let color = document.querySelector('div.tool.rectangle .color input').value || null;
 
-							this.ip = null;
+								this.object = new UI.Rectangle('rect', [0, 0], [0, 0], color);
 
-							this.tool.move.drag = false;
+								this.drag = false;
+							}
 						}
-					}
+					}, this);
 				}
-				else if (this.tool.type == 'rect') {
+				else if (this.tool.type == 'text') {
+					use(this.tool.text, function (scene) {
+						if (mouse.down) {
+							if (this.drag == false) {
+								this.start = mouse.down;
 
+								let text = document.querySelector('div.tool.text .text input').value;
+								let align = document.querySelector('div.tool.text .align input').value || 'left';
+								let valign = document.querySelector('div.tool.text .valign input').value || 'top';
+								let color = document.querySelector('div.tool.text .color input').value || 'white';
+								let bgcolor = document.querySelector('div.tool.text .bgcolor input').value || null;
+
+								this.object.setText(text).setAlign(align).setVAlign(valign).setColor(color).setBackgroundColor(bgcolor);
+								
+								this.drag = true;
+							}
+						}
+
+						if (mouse.move) {
+							if (this.drag) {
+								let start = [...this.start];
+								let end = mouse.move;
+
+								if (start[0] > end[0]) {
+									[start[0], end[0]] = [end[0], start[0]];
+								}
+
+								if (start[1] > end[1]) {
+									[start[1], end[1]] = [end[1], start[1]];
+								}
+
+								let interval = [scene.panel.grid.columnInterval, scene.panel.grid.rowInterval];
+
+								start = scene.panel.grid.fit(scene.panel.globalToLocal(start));
+								end = scene.panel.grid.fit(scene.panel.globalToLocal(end));
+
+								this.object.position = start;
+								this.object.size = end.addv(interval).subv(start);
+							}
+						}
+
+						if (mouse.up) {
+							if (this.drag) {
+								let text = document.querySelector('div.tool.text .text input').value;
+								let align = document.querySelector('div.tool.text .align input').value || 'left';
+								let valign = document.querySelector('div.tool.text .valign input').value || 'top';
+								let color = document.querySelector('div.tool.text .color input').value || 'white';
+								let bgcolor = document.querySelector('div.tool.text .bgcolor input').value || null;
+								
+								if (this.object) {
+									this.object.setText(text).setAlign(align).setVAlign(valign).setColor(color).setBackgroundColor(bgcolor);
+									scene.panel.addComponents(this.object);
+								}
+
+								this.object = new You.Text('text')
+												.setText(text)
+												.setAlign(align).setVAlign(align)
+												.setColor(color)
+												.setBackgroundColor(bgcolor);
+
+								this.drag = false;
+							}
+						}
+					}, this);
 				}
 			},
 			draw(context) {
 				context.save();
 
-				this.grid.draw(context);
+				this.panel.draw(context);
 
 				if (this.tool.type == 'move') {
-					let old = this.rect.transform.position;
+					use(this.tool.move, function (scene) {
+						if (this.drag) {
+							let tempPosition = this.selected.position;
 
-					if (this.tool.move.drag) {
-						this.rect.draw(context);
-						context.globalAlpha = 0.5;
-					}
-
-					this.rect.transform.position = this.grid.fit(this.rect);
-					this.rect.draw(context);
-
-					if (this.tool.move.drag) {
-						this.rect.transform.position = old;
-					}
-
-					if (this.selected) {
-						context.globalAlpha = 1;
-						context.strokeStyle = 'rgba(0, 255, 0, 1)';
-						context.strokeRect(...this.selected.transform.position, ...this.selected.transform.size);
-					}
+							this.selected.position = scene.panel.localToGlobal(this.positionBeforeFit);
+							this.selected.alpha = 1;
+							this.selected.draw(context);
+							this.selected.alpha = 0.5;
+							this.selected.position = tempPosition;
+						}
+						else {
+							if (this.selected) {
+								context.globalAlpha = 1;
+								context.strokeStyle = 'rgba(0, 255, 0, 1)';
+								context.strokeRect(...scene.panel.localToGlobal(this.selected.position), ...this.selected.size);
+							}
+						}
+					}, this);
 				}
-				else if (this.tool.type == 'rect') {
-
+				else if (this.tool.type == 'rectangle') {
+					use(this.tool.rectangle, function (scene) {
+						if (this.drag) {
+							this.object.position = this.object.position.addv(scene.panel.position);
+							this.object.draw(context);
+							this.object.position = this.object.position.subv(scene.panel.position);
+						}
+					}, this);
+				}
+				else if (this.tool.type == 'text') {
+					use(this.tool.text, function (scene) {
+						if (this.drag) {
+							this.object.position = this.object.position.addv(scene.panel.position);
+							this.object.draw(context);
+							this.object.position = this.object.position.subv(scene.panel.position);
+						}
+					}, this);
 				}
 
 				context.restore();
@@ -154,19 +316,37 @@ var UIEditor = {
 
 var UI = {};
 
-UI.Area = class extends You.Object {
+UI.Panel = class extends You.Area {
 	constructor(name) {
 		super(name);
 
-		this.transform = transform;
+		this.grid = new UI.Grid('grid', 20, 20);
+
+		this.clip = true;
+	}
+
+	fitAll() {
+		this.components.forEach((c) => {
+			c.position = this.grid.fit(c.position);
+		});
 	}
 
 	draw(context, ...args) {
 		context.save();
 
-		context.translate(...this.transform.position);
-		context.scale(...this.transform.scale);
-		context.rotate(...this.transform.rotate);
+		context.translate(...this.position);
+
+		context.save();
+		
+		context.beginPath();
+		context.rect(0, 0, ...this.size);
+		context.clip();
+
+		this.grid.draw(context, ...args);
+
+		if (this.clip == false) {
+			context.restore();
+		}
 
 		this.onDraw(context, ...args);
 		this.components.forEach((c) => c.draw(context, ...args));
@@ -174,45 +354,44 @@ UI.Area = class extends You.Object {
 		context.restore();
 	}
 
-	intersect(other) {
-		if (other instanceof UI.Area) {
-			return 
-		}
+	setClip(clip) {
+		this.clip = clip || true;
 
-		return null;
+		return this;
 	}
+};
 
-	contain(point) {
-		return this.transform.position[0] < point[0] && point[0] < this.transform.position[0] + this.transform.size[0] &&
-			this.transform.position[1] < point[1] && point[1] < this.transform.position[1] + this.transform.size[1];
-	}
-}
-
-UI.Panel = class extends UI.Area {
-
-}
-
-UI.Rectangle = class extends You.Object {
-	constructor(name, position, size, color) {
+UI.Rectangle = class extends You.Area {
+	constructor(name) {
 		super(name);
 
-		this.transform = {
-			position: position,
-			size: size
-		};
-
-		this.color = color;
+		this.color = null;
+		this.alpha = 1;
 	}
 
 	onDraw(context) {
-		context.fillStyle = this.color;
+		if (this.color && this.alpha > 0) {
+			context.save();
 
-		context.fillRect(...this.transform.position, ...this.transform.size);
+			context.globalAlpha = this.alpha;
+			context.fillStyle = this.color;
+
+			context.fillRect(...this.position, ...this.size);
+
+			context.restore();
+		}
 	}
 
-	contain(point) {
-		return this.transform.position[0] < point[0] && point[0] < this.transform.position[0] + this.transform.size[0] &&
-			this.transform.position[1] < point[1] && point[1] < this.transform.position[1] + this.transform.size[1];
+	setColor(color) {
+		this.color = color || null;
+
+		return this;
+	}
+
+	setAlpha(alpha) {
+		this.alpha = alpha == 0 ? 0 : alpha || 1;
+
+		return this;
 	}
 };
 
@@ -247,10 +426,10 @@ UI.Grid = class extends You.Object {
 		context.restore();
 	}
 
-	fit(object) {
+	fit(position) {
 		return [
-			parseInt((object.transform.position[0] + this.columnInterval / 2) / this.columnInterval) * this.columnInterval,
-			parseInt((object.transform.position[1] + this.rowInterval / 2) / this.rowInterval) * this.rowInterval
+			Math.floor((position[0]) / this.columnInterval) * this.columnInterval,
+			Math.floor((position[1]) / this.rowInterval) * this.rowInterval
 		];
 	}
 };
