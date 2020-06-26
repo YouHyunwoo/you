@@ -306,6 +306,19 @@ Nemo.GameObject = class extends You.Object {
 			rotate: [ 0, 0 ],
 		};
 	}
+
+	// draw(context, ...args) {
+	// 	context.save();
+
+	// 	context.translate(...this.transform.position);
+	// 	context.scale(...this.transform.scale);
+	// 	context.rotate(...this.transform.rotate);
+
+	// 	this.onDraw(context, ...args);
+	// 	this.components.forEach((c) => c.draw(context, ...args));
+
+	// 	context.restore();
+	// }
 };
 
 Nemo.Moveable = class extends You.Object {
@@ -396,7 +409,7 @@ Nemo.SelectState = class extends You.State {
 				let rx = mouse_event[1].clientX - rect.left;
 				let ry = mouse_event[1].clientY - rect.top;
 
-				Object.values(scene.choices).forEach((button) => button.handleMouse([rx, ry]));
+				Object.values(scene.choices).forEach((button) => button.handle([rx, ry]));
 			}
 		}
 	}
@@ -457,7 +470,7 @@ Nemo.StatsState = class extends You.State {
 				let rx = mouse_event[1].clientX - rect.left;
 				let ry = mouse_event[1].clientY - rect.top;
 
-				Object.values(scene.buttons.menu).forEach((button) => button.handleMouse([rx, ry]));
+				Object.values(scene.buttons.menu).forEach((button) => button.handle([rx, ry]));
 			}
 		}
 	}
@@ -509,9 +522,9 @@ Nemo.UpgradeState = class extends You.State {
 				let rx = mouse_event[1].clientX - rect.left;
 				let ry = mouse_event[1].clientY - rect.top;
 
-				Object.values(scene.buttons.menu).forEach((button) => button.handleMouse([rx, ry]));
+				Object.values(scene.buttons.menu).forEach((button) => button.handle([rx, ry]));
 
-				Object.values(scene.buttons.upgrade).forEach((button) => button.handleMouse([rx, ry]));
+				Object.values(scene.buttons.upgrade).forEach((button) => button.handle([rx, ry]));
 			}
 		}
 	}

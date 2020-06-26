@@ -355,7 +355,7 @@ You.Input = class {
 			up: null,
 		};
 
-		window.addEventListener('keydown', (e) => {
+		document.getElementById('canvas').addEventListener('keydown', (e) => {
 			let keycode = e.keyCode;
 
 			if (!(this.#key.down.has(keycode) || this.#key.press.has(keycode))) {
@@ -363,21 +363,21 @@ You.Input = class {
 			}
 		});
 
-		window.addEventListener('keyup', (e) => {
+		document.getElementById('canvas').addEventListener('keyup', (e) => {
 			this.#tkey.up.add(e.keyCode);
 		});
 
-		window.addEventListener('mousedown', (e) => {
+		document.getElementById('canvas').addEventListener('mousedown', (e) => {
 			this.mouse.position = [e.offsetX, e.offsetY];
 			this.#tmouse.down = [e.offsetX, e.offsetY];
 		});
 
-		window.addEventListener('mousemove', (e) => {
+		document.getElementById('canvas').addEventListener('mousemove', (e) => {
 			this.mouse.position = [e.offsetX, e.offsetY];
 			this.#tmouse.move = [e.offsetX, e.offsetY];
 		});
 
-		window.addEventListener('mouseup', (e) => {
+		document.getElementById('canvas').addEventListener('mouseup', (e) => {
 			this.mouse.position = [e.offsetX, e.offsetY];
 			this.#tmouse.up = [e.offsetX, e.offsetY];
 		});
@@ -460,6 +460,23 @@ You.Object = class {
 		this.tags = [];
 	}
 
+	set order(value) {
+		if (this.parent) {
+			let comps = this.parent.components;
+
+			comps.splice(comps.indexOf(this), 1);
+			comps.splice(Math.max(value, 0), 0, this);
+		}
+	}
+
+	get order() {
+		if (this.parent) {
+			return this.parent.components.indexOf(this);
+		}
+
+		return null;
+	}
+
 	addComponent(component) {
 		if (!component) {
 			throw 'argumentError';
@@ -471,6 +488,14 @@ You.Object = class {
 		if (component.name) {
 			this[component.name] = component;
 		}
+
+		return this;
+	}
+
+	addComponents(...components) {
+		components.forEach((c) => {
+			this.addComponent(c);
+		});
 
 		return this;
 	}
@@ -493,13 +518,21 @@ You.Object = class {
 		return this;
 	}
 
+	removeComponents(...components) {
+		components.forEach((c) => {
+			this.removeComponents(c);
+		});
+
+		return this;
+	}
+
 	findComponent(expression) {
 		let [name, ...tags] = expression.split('#');
 		let found = [];
 
 		loopComponent:
 		for (let c of this.components) {
-			if (!(name && c.name == name)) {
+			if (name && c.name != null && c.name != name) {
 				continue;
 			}
 
@@ -515,7 +548,25 @@ You.Object = class {
 		return found;
 	}
 
-	// tag
+	findComponents(expression) {
+		return this.findComponent(expression);
+	}
+
+	addTag(value) {
+		this.tags.push(value);
+
+		return this;
+	}
+
+	removeTag(value) {
+		let index = this.tags.indexOf(value);
+
+		if (index > -1) {
+			this.tags.splice(index, 1);
+		}
+
+		return this;
+	}
 
 	update(delta, ...args) {
 		this.onUpdate(delta, ...args);
@@ -614,59 +665,37 @@ You.State.Context = class extends You.Object {
 	}
 };
 
-You.Text = class extends You.Object {
+You.Area = class extends You.Object {
+
+}
+
+You.Area = class extends You.Object {
 	constructor(name) {
 		super(name);
 
 		this.position = [0, 0];
-		this.size = null;
-		this.padding = [0, 0];
-
-		this.text = '';
-		this.font = '15px Arial';
-		this.textAlpha = 1;
-		this.textAlign = 'left';
-		this.textVerticalAlign = 'top';
-		this.textColor = 'white';
-		this.backgroundColor = 'black';
+		this.size = [0, 0];
 	}
 
-	onDraw(context) {
-		context.save();
+	// intersect(other) {
+	// 	if (other instanceof UI.Area) {
+	// 		return this.position[0]
+	// 	}
 
-		context.fillStyle = this.backgroundColor;
-		context.fillRect(...this.position, ...this.size);
+	// 	return null;
+	// }
 
-		context.font = this.font;
-		context.globalAlpha = this.textAlpha;
-		context.textAlign = this.textAlign;
-		context.textBaseline = this.size == null ? 'top' : this.textVerticalAlign;
-		context.fillStyle = this.textColor;
-		
-		let [tx, ty] = this.position;
+	contain(point) {
+		return this.position[0] < point[0] && point[0] < this.position[0] + this.size[0] &&
+			this.position[1] < point[1] && point[1] < this.position[1] + this.size[1];
+	}
 
-		let dx = { left: 0, center: 1, right: 2 };
-		tx += dx[this.textAlign] * this.size[0] / 2;
-		tx += (1 - dx[this.textAlign]) * this.padding[0];
+	localToGlobal(point) {
+		return this.parent && this.parent instanceof UI.Area ? this.parent.localToGlobal(point.addv(this.position)) : point.addv(this.position);
+	}
 
-		let dy = { top: 0, middle: 1, bottom: 2};
-		ty += dy[this.textVerticalAlign] * this.size[1] / 2;
-		ty += (1 - dy[this.textVerticalAlign]) * this.padding[1];
-
-		context.beginPath();
-		context.rect(...this.position, ...this.size);
-		context.clip();
-
-		let textMetrics = context.measureText(this.text);
-		let textHeight = textMetrics.actualBoundingBoxAscent + textMetrics.actualBoundingBoxDescent;
-
-		let lines = this.text.split('\n');
-
-		for (let i = 0; i < lines.length; i++) {
-			context.fillText(lines[i], tx, ty + textHeight * i);
-		}
-
-		context.restore();
+	globalToLocal(point) {
+		return this.parent && this.parent instanceof UI.Area ? this.parent.globalToLocal(point.subv(this.position)) : point.subv(this.position);
 	}
 
 	setPosition(position) {
@@ -676,9 +705,72 @@ You.Text = class extends You.Object {
 	}
 
 	setSize(size) {
-		this.size = size || null;
+		this.size = size || [0, 0];
 
 		return this;
+	}
+
+	get x() { return this.position[0]; }
+	get y() { return this.position[1]; }
+	get width() { return this.size[0]; }
+	get height() { return this.size[1]; }
+};
+
+You.Text = class extends You.Area {
+	constructor(name) {
+		super(name);
+
+		this.padding = [0, 0];
+
+		this.text = '';
+		this.font = '15px Arial';
+		this.align = 'left';
+		this.valign = 'top';
+		this.color = 'white';
+		this.backgroundColor = null;
+	}
+
+	onDraw(context) {
+		context.save();
+
+		if (this.backgroundColor) {
+			context.fillStyle = this.backgroundColor;
+			context.fillRect(...this.position, ...this.size);
+		}
+
+		if (this.text) {
+			context.font = this.font;
+			context.textAlign = this.align;
+			context.textBaseline = this.valign;
+			context.fillStyle = this.color;
+			
+			let [tx, ty] = this.position;
+
+			let dx = { left: 0, center: 1, right: 2 };
+
+			tx += dx[this.align] * this.size[0] / 2;
+			tx += (1 - dx[this.align]) * this.padding[0];
+
+			let dy = { top: 0, middle: 1, bottom: 2};
+
+			ty += dy[this.valign] * this.size[1] / 2;
+			ty += (1 - dy[this.valign]) * this.padding[1];
+
+			context.beginPath();
+			context.rect(...this.position, ...this.size);
+			context.clip();
+
+			let textMetrics = context.measureText(this.text);
+			let textHeight = textMetrics.actualBoundingBoxAscent + textMetrics.actualBoundingBoxDescent;
+
+			let lines = this.text.split('\n');
+
+			for (let i = 0; i < lines.length; i++) {
+				context.fillText(lines[i], tx, ty + textHeight * i);
+			}
+		}
+
+		context.restore();
 	}
 
 	setPadding(padding) {
@@ -699,32 +791,26 @@ You.Text = class extends You.Object {
 		return this;
 	}
 
-	setTextAlpha(textAlpha) {
-		this.textAlpha = textAlpha;
+	setAlign(align) {
+		this.align = align || 'left';
 
 		return this;
 	}
 
-	setTextAlign(textAlign) {
-		this.textAlign = textAlign || 'left';
+	setVAlign(valign) {
+		this.valign = valign || 'top';
 
 		return this;
 	}
 
-	setTextVerticalAlign(textVerticalAlign) {
-		this.textVerticalAlign = textVerticalAlign || 'top';
-
-		return this;
-	}
-
-	setTextColor(textColor) {
-		this.textColor = textColor || 'white';
+	setColor(color) {
+		this.color = color || 'white';
 
 		return this;
 	}
 
 	setBackgroundColor(backgroundColor) {
-		this.backgroundColor = backgroundColor || 'black';
+		this.backgroundColor = backgroundColor || null;
 
 		return this;
 	}
@@ -763,12 +849,15 @@ You.Button = class extends You.Text {
 		return this;
 	}
 
-	handleMouse(mouse) {
-		let [mx, my] = mouse;
-		let [bx, by, bw, bh] = [...this.position, ...this.size];
+	handle(point, global=true) {
+		// let [px, py] = this.globalToLocal(point);
+		// let [bx, by, bw, bh] = [...this.position, ...this.size];
 		
-		if (bx <= mx && mx < bx+bw && by <= my && my < by+bh) {
+		if (this.contain(global ? this.globalToLocal(point) : point)) {
 			this.handlers.forEach((h, i) => h(...this.args[i]));
 		}
+		// if (bx <= px && px < bx+bw && by <= py && py < by+bh) {
+		// 	this.handlers.forEach((h, i) => h(...this.args[i]));
+		// }
 	}
 };
