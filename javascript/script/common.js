@@ -1,3 +1,6 @@
+function use(target, f, ...args) {
+	f.call(target, ...args);
+}
 function log(strings) {
 	console.log(strings.raw[0]);
 }
