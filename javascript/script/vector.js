@@ -1,11 +1,15 @@
-Array.prototype.adds = function (other) {
+Array.prototype.addv = function (other) {
 	if (this.length != other.length) {
 		throw 'ArgumentError';
 	}
 
+	let result = [];
+
 	for (let i = 0; i < this.length; i++) {
-		this[i] += other[i];
+		result.push(this[i] + other[i]);
 	}
+
+	return result;
 };
 
 Array.prototype.subv = function (other) {
@@ -13,21 +17,33 @@ Array.prototype.subv = function (other) {
 		throw 'ArgumentError';
 	}
 
+	let result = [];
+
 	for (let i = 0; i < this.length; i++) {
-		this[i] -= other[i];
+		result.push(this[i] - other[i]);
 	}
+
+	return result;
 };
 
 Array.prototype.muls = function (other) {
+	let result = [];
+
 	for (let i = 0; i < this.length; i++) {
-		this[i] *= other;
+		result.push(this[i] * other);
 	}
+
+	return result;
 };
 
 Array.prototype.divs = function (other) {
+	let result = [];
+
 	for (let i = 0; i < this.length; i++) {
-		this[i] /= other;
+		result.push(this[i] / other);
 	}
+
+	return result;
 };
 
 Array.prototype.dotv = function (other) {
