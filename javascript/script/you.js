@@ -77,9 +77,9 @@ class Input {
 
 		window.addEventListener('keydown', this._keydown_handler);
 		window.addEventListener('keyup', this._keyup_handler);
-		window.addEventListener('mousedown', this._mousedown_handler);
-		window.addEventListener('mousemove', this._mousemove_handler);
-		window.addEventListener('mouseup', this._mouseup_handler);
+		window.addEventListener('pointerdown', this._mousedown_handler);
+		window.addEventListener('pointermove', this._mousemove_handler);
+		window.addEventListener('pointerup', this._mouseup_handler);
 	}
 
 	static get KEY_ENTER()	{ return 13; }
@@ -367,17 +367,21 @@ You.Input = class {
 			this.#tkey.up.add(e.keyCode);
 		});
 
-		document.getElementById('canvas').addEventListener('mousedown', (e) => {
+		document.getElementById('canvas').addEventListener('pointerdown', (e) => {
+			e.target.setPointerCapture(e.pointerId);
+
 			this.mouse.position = [e.offsetX, e.offsetY];
 			this.#tmouse.down = [e.offsetX, e.offsetY];
 		});
 
-		document.getElementById('canvas').addEventListener('mousemove', (e) => {
+		document.getElementById('canvas').addEventListener('pointermove', (e) => {
 			this.mouse.position = [e.offsetX, e.offsetY];
 			this.#tmouse.move = [e.offsetX, e.offsetY];
 		});
 
-		document.getElementById('canvas').addEventListener('mouseup', (e) => {
+		document.getElementById('canvas').addEventListener('pointerup', (e) => {
+			e.target.releasePointerCapture(e.pointerId);
+
 			this.mouse.position = [e.offsetX, e.offsetY];
 			this.#tmouse.up = [e.offsetX, e.offsetY];
 		});
@@ -484,9 +488,12 @@ You.Object = class {
 
 		component.parent = this;
 		this.components.push(component);
+		component.onAdded(this);
 
 		if (component.name) {
-			this[component.name] = component;
+			if (this[component.name] == undefined) {
+				this[component.name] = component;
+			}
 		}
 
 		return this;
@@ -509,8 +516,9 @@ You.Object = class {
 		if (idx > -1) {
 			let component = this.components.splice(idx, 1);
 			component.parent = null;
+			component.onRemoved(this);
 
-			if (component.name) {
+			if (component.name && this[component.name] == component) {
 				delete this[component.name];
 			}
 		}
@@ -567,6 +575,9 @@ You.Object = class {
 
 		return this;
 	}
+
+	onAdded(parent) {}
+	onRemoved(parent) {}
 
 	update(delta, ...args) {
 		this.onUpdate(delta, ...args);
@@ -666,36 +677,142 @@ You.State.Context = class extends You.Object {
 };
 
 You.Area = class extends You.Object {
-
-}
-
-You.Area = class extends You.Object {
 	constructor(name) {
 		super(name);
 
 		this.position = [0, 0];
 		this.size = [0, 0];
+
+		this.color = null;
 	}
 
-	// intersect(other) {
-	// 	if (other instanceof UI.Area) {
-	// 		return this.position[0]
-	// 	}
+	mouseDown(event) {
+		if (!event.stop) {
+			this.onMouseDown(event);
+		}
 
-	// 	return null;
-	// }
+		if (!event.stop) {
+			[event.x, event.y] = [event.x, event.y].subv(this.position);
+
+			for (let c = this.components.length-1; c >= 0; c--) {
+				this.components[c].mouseDown(event);
+
+				if (event.stop) {
+					break;
+				}
+			}
+
+			[event.x, event.y] = [event.x, event.y].addv(this.position);
+		}
+	}
+
+	onMouseDown(event) {}
+
+	mouseMove(event) {
+		if (!event.stop) {
+			this.onMouseMove(event);
+		}
+
+		if (!event.stop) {
+			[event.x, event.y] = [event.x, event.y].subv(this.position);
+
+			for (let c = this.components.length-1; c >= 0; c--) {
+				this.components[c].mouseMove(event);
+
+				if (event.stop) {
+					break;
+				}
+			}
+
+			[event.x, event.y] = [event.x, event.y].addv(this.position);
+		}
+	}
+
+	onMouseMove(event) {}
+
+	mouseUp(event) {
+		if (!event.stop) {
+			this.onMouseUp(event);
+		}
+
+		if (!event.stop) {
+			[event.x, event.y] = [event.x, event.y].subv(this.position);
+
+			for (let c = this.components.length-1; c >= 0; c--) {
+				this.components[c].mouseUp(event);
+
+				if (event.stop) {
+					break;
+				}
+			}
+
+			[event.x, event.y] = [event.x, event.y].addv(this.position);
+		}
+	}
+
+	onMouseUp(event) {}
+
+	onUpdate(delta) {
+		if (this.parent == null) {
+			let mouse = You.Input.mouse;
+
+			if (mouse.down) {
+				this.mouseDown({
+					x: mouse.down[0],
+					y: mouse.down[1],
+					stop: false
+				});
+			}
+
+			if (mouse.move) {
+				this.mouseMove({
+					x: mouse.move[0],
+					y: mouse.move[1],
+					stop: false
+				});
+			}
+
+			if (mouse.up) {
+				this.mouseUp({
+					x: mouse.up[0],
+					y: mouse.up[1],
+					stop: false
+				});
+			}
+		}
+	}
+
+	onDraw(context) {
+		if (this.color) {
+			context.save();
+
+			context.fillStyle = this.color;
+			context.fillRect(...this.position, ...this.size);
+
+			context.restore();
+		}
+	}
+
+	intersect(other) {
+		if (other instanceof You.Area) {
+			return this.x < other.x + other.width && other.x < this.x + this.width &&
+				this.y < other.y + other.height && other.y < this.y + this.height;
+		}
+
+		return null;
+	}
 
 	contain(point) {
 		return this.position[0] < point[0] && point[0] < this.position[0] + this.size[0] &&
-			this.position[1] < point[1] && point[1] < this.position[1] + this.size[1];
+				this.position[1] < point[1] && point[1] < this.position[1] + this.size[1];
 	}
 
 	localToGlobal(point) {
-		return this.parent && this.parent instanceof UI.Area ? this.parent.localToGlobal(point.addv(this.position)) : point.addv(this.position);
+		return this.parent && this.parent instanceof You.Area ? this.parent.localToGlobal(point.addv(this.position)) : point.addv(this.position);
 	}
 
 	globalToLocal(point) {
-		return this.parent && this.parent instanceof UI.Area ? this.parent.globalToLocal(point.subv(this.position)) : point.subv(this.position);
+		return this.parent && this.parent instanceof You.Area ? this.parent.globalToLocal(point.subv(this.position)) : point.subv(this.position);
 	}
 
 	setPosition(position) {
@@ -710,13 +827,256 @@ You.Area = class extends You.Object {
 		return this;
 	}
 
+	setColor(color) {
+		this.color = color || null;
+
+		return this;
+	}
+
 	get x() { return this.position[0]; }
 	get y() { return this.position[1]; }
 	get width() { return this.size[0]; }
 	get height() { return this.size[1]; }
 };
 
+You.Panel = class extends You.Area {
+	constructor(name) {
+		super(name);
+
+		this.clip = true;
+	}
+
+	draw(context, ...args) {
+		context.save();
+
+		context.translate(...this.position);
+		
+		if (this.clip) {
+			context.beginPath();
+			context.rect(0, 0, ...this.size);
+			context.clip();
+		}
+
+		this.onDraw(context, ...args);
+		this.components.forEach((c) => c.draw(context, ...args));
+
+		context.restore();
+	}
+
+	setClip(clip) {
+		this.clip = clip;
+
+		return this;
+	}
+};
+
+You.ScrollPanel = class extends You.Panel {
+
+	#mouseOver = false;
+	#mouseDown = false;
+	#anchorPosition = null;
+	#deltaPosition = null;
+	#originalPosition = null;
+
+	constructor(name) {
+		super(name);
+
+		this.panelPosition = [0, 0];
+		this.panelSize = [0, 0];
+
+		this.scrollDirection = 'vertical'; // vertical, horizontal, both
+		this.align = 'left';
+		this.valign = 'top';
+	}
+
+	mouseDown(event) {
+		if (!event.stop) {
+			this.onMouseDown(event);
+		}
+
+		if (!event.stop) {
+			if (this.clip && this.contain([event.x, event.y])) {
+				// if (this.contain([event.x, event.y])) {
+					[event.x, event.y] = [event.x, event.y].subv(this.position).subv(this.panelPosition);
+					// this.contain -> comps
+					for (let c = this.components.length-1; c >= 0; c--) {
+						this.components[c].mouseDown(event);
+
+						if (event.stop) {
+							break;
+						}
+					}
+
+					[event.x, event.y] = [event.x, event.y].addv(this.position).addv(this.panelPosition);
+				// }
+			}
+		}
+	}
+
+	mouseMove(event) {
+		if (!event.stop) {
+			this.onMouseMove(event);
+		}
+
+		if (!event.stop) {
+			if (this.clip && this.contain([event.x, event.y])) {
+				[event.x, event.y] = [event.x, event.y].subv(this.position).subv(this.panelPosition);
+
+				for (let c = this.components.length-1; c >= 0; c--) {
+					this.components[c].mouseMove(event);
+
+					if (event.stop) {
+						break;
+					}
+				}
+
+				[event.x, event.y] = [event.x, event.y].addv(this.position).addv(this.panelPosition);
+			}
+		}
+	}
+
+	mouseUp(event) {
+		if (!event.stop) {
+			this.onMouseUp(event);
+		}
+
+		if (!event.stop) {
+			[event.x, event.y] = [event.x, event.y].subv(this.position).subv(this.panelPosition);
+			
+			for (let c = this.components.length-1; c >= 0; c--) {
+				this.components[c].mouseUp(event);
+				if (event.stop) {
+					break;
+				}
+			}
+
+			[event.x, event.y] = [event.x, event.y].addv(this.position).addv(this.panelPosition);
+		}
+	}
+
+	onMouseDown(event) {
+		if (!this.#mouseDown) {
+			if (this.#mouseOver) {
+				this.#anchorPosition = [event.x, event.y];
+				this.#deltaPosition = [0, 0];
+
+				this.#originalPosition = [...this.panelPosition];
+
+				this.#mouseDown = true;
+			}
+		}
+	}
+
+	onMouseMove(event) {
+		if (this.#mouseDown) {
+			this.#deltaPosition = [event.x, event.y].subv(this.#anchorPosition);
+			
+			if (this.scrollDirection == 'horizontal' || this.scrollDirection == 'both') {
+				this.panelPosition[0] = this.#originalPosition[0] + this.#deltaPosition[0];
+			}
+			else if (this.scrollDirection == 'vertical' || this.scrollDirection == 'both') {
+				this.panelPosition[1] = this.#originalPosition[1] + this.#deltaPosition[1];
+			}
+
+			if (this.scrollDirection == 'vertical' || this.size[0] > this.panelSize[0]) {
+				let dx = { left: 0, center: 1, right: 2 };
+
+				this.panelPosition[0] = dx[this.align] * (this.size[0] - this.panelSize[0]) / 2;
+			}
+			else {
+				this.panelPosition[0] = Math.min(0, Math.max(this.size[0] - this.panelSize[0], this.panelPosition[0]));
+			}
+
+			if (this.scrollDirection == 'horizontal' || this.size[1] > this.panelSize[1]) {
+				let dy = { top: 0, middle: 1, bottom: 2 };
+
+				this.panelPosition[1] = dy[this.valign] * (this.size[1] - this.panelSize[1]) / 2;
+			}
+			else {
+				this.panelPosition[1] = Math.min(0, Math.max(this.size[1] - this.panelSize[1], this.panelPosition[1]));
+			}
+		}
+		else {
+			if (this.contain([event.x, event.y])) {
+				this.#mouseOver = true;
+			}
+			else {
+				this.#mouseOver = false;
+			}
+		}
+	}
+
+	onMouseUp(event) {
+		this.#mouseDown = false;
+
+		if (this.#deltaPosition[0] != 0 || this.#deltaPosition[1] != 0) {
+			event.stop = true;
+		}
+	}
+
+	draw(context, ...args) {
+		context.save();
+
+		context.translate(...this.position.map((e) => Math.floor(e)));
+		
+		if (this.clip) {
+			context.beginPath();
+			context.rect(0, 0, ...this.size);
+			context.clip();
+		}
+
+		context.translate(...this.panelPosition);
+
+		this.onDraw(context, ...args);
+		this.components.forEach((c) => c.draw(context, ...args));
+
+		context.restore();
+	}
+
+	onDraw(context) {
+		context.save();
+
+		context.fillStyle = this.color;
+		context.fillRect(0, 0, ...this.panelSize);
+
+		context.restore();
+	}
+
+	setPanelPosition(panelPosition) {
+		this.panelPosition = panelPosition || [0, 0];
+
+		return this;
+	}
+
+	setPanelSize(panelSize) {
+		this.panelSize = panelSize || [0, 0];
+
+		return this;
+	}
+
+	setScrollDirection(scrollDirection) {
+		this.scrollDirection = scrollDirection || 'vertical';
+
+		return this;
+	}
+
+	setAlign(align) {
+		this.align = align || 'left';
+
+		return this;
+	}
+
+	setVAlign(valign) {
+		this.valign = valign || 'top';
+
+		return this;
+	}
+}
+
 You.Text = class extends You.Area {
+
+	#textHeight = 0;
+
 	constructor(name) {
 		super(name);
 
@@ -728,6 +1088,8 @@ You.Text = class extends You.Area {
 		this.valign = 'top';
 		this.color = 'white';
 		this.backgroundColor = null;
+
+		this.#textHeight = 0;
 	}
 
 	onDraw(context) {
@@ -751,7 +1113,7 @@ You.Text = class extends You.Area {
 			tx += dx[this.align] * this.size[0] / 2;
 			tx += (1 - dx[this.align]) * this.padding[0];
 
-			let dy = { top: 0, middle: 1, bottom: 2};
+			let dy = { top: 0, middle: 1, bottom: 2 };
 
 			ty += dy[this.valign] * this.size[1] / 2;
 			ty += (1 - dy[this.valign]) * this.padding[1];
@@ -760,13 +1122,10 @@ You.Text = class extends You.Area {
 			context.rect(...this.position, ...this.size);
 			context.clip();
 
-			let textMetrics = context.measureText(this.text);
-			let textHeight = textMetrics.actualBoundingBoxAscent + textMetrics.actualBoundingBoxDescent;
-
 			let lines = this.text.split('\n');
 
 			for (let i = 0; i < lines.length; i++) {
-				context.fillText(lines[i], tx, ty + textHeight * i);
+				context.fillText(lines[i], tx, ty + this.#textHeight * i);
 			}
 		}
 
@@ -781,6 +1140,16 @@ You.Text = class extends You.Area {
 
 	setText(text) {
 		this.text = text.replace(/\t/g, '') || '';
+
+		let oldFont = You.context.font;
+
+		You.context.font = this.font;
+
+		let textMetrics = You.context.measureText(this.text);
+
+		this.#textHeight = textMetrics.actualBoundingBoxAscent + textMetrics.actualBoundingBoxDescent;
+
+		You.context.font = oldFont;
 
 		return this;
 	}
@@ -817,11 +1186,51 @@ You.Text = class extends You.Area {
 };
 
 You.Button = class extends You.Text {
+
+	#mouseOver = false;
+	#mouseDown = false;
+
 	constructor(name) {
 		super(name);
 
 		this.handlers = [];
 		this.args = [];
+	}
+
+	onMouseDown(event) {
+		if (!this.#mouseDown) {
+			if (this.#mouseOver) {
+				this.#mouseDown = true;
+			}
+		}
+	}
+
+	onMouseMove(event) {
+		if (this.contain([event.x, event.y])) {
+			this.#mouseOver = true;
+		}
+		else {
+			this.#mouseOver = false;
+		}
+	}
+
+	onMouseUp(event) {
+		if (this.#mouseDown && this.#mouseOver) {
+			this.handlers.forEach((h, i) => h(...this.args[i]));
+		}
+	}
+
+	onDraw(context) {
+		super.onDraw(context);
+
+		if (this.#mouseOver) {
+			context.save();
+
+			context.fillStyle = 'rgba(255, 255, 255, 0.1)';
+			context.fillRect(...this.position, ...this.size);
+
+			context.restore();
+		}
 	}
 
 	addHandler(handler, ...args) {
@@ -849,15 +1258,9 @@ You.Button = class extends You.Text {
 		return this;
 	}
 
-	handle(point, global=true) {
-		// let [px, py] = this.globalToLocal(point);
-		// let [bx, by, bw, bh] = [...this.position, ...this.size];
-		
-		if (this.contain(global ? this.globalToLocal(point) : point)) {
+	handle(point) {
+		if (this.contain(point)) {
 			this.handlers.forEach((h, i) => h(...this.args[i]));
 		}
-		// if (bx <= px && px < bx+bw && by <= py && py < by+bh) {
-		// 	this.handlers.forEach((h, i) => h(...this.args[i]));
-		// }
 	}
 };

@@ -1,3 +1,17 @@
+Array.prototype.equals = function (other) {
+	if (this.length != other.length) {
+		throw 'ArgumentError';
+	}
+
+	for (let i = 0; i < this.length; i++) {
+		if (this[i] != other[i]) {
+			return false;
+		}
+	}
+	
+	return true;
+}
+
 Array.prototype.addv = function (other) {
 	if (this.length != other.length) {
 		throw 'ArgumentError';
@@ -59,3 +73,7 @@ Array.prototype.dotv = function (other) {
 	
 	return result;
 };
+
+Array.prototype.distanceTo = function (other) {
+	return Math.sqrt(this.subv(other).dotv(this.subv(other)));
+}

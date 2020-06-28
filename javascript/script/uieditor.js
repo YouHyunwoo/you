@@ -18,68 +18,6 @@ var UIEditor = {
 	scene: {
 		main: {
 			in() {
-				this.tool = {
-					types: [ 'move', 'rectangle', 'text', 'button' ],
-					type: null,
-				};
-
-				this.tool.types.forEach((t) => {
-					document.getElementById(t).addEventListener('click', (e) => { this.tool.type = t; });
-				});
-
-				document.getElementById('move').addEventListener('click', (e) => {
-					this.tool.type = 'move';
-				});
-
-				document.getElementById('rectangle').addEventListener('click', (e) => {
-					this.tool.type = 'rectangle';
-
-					document.querySelectorAll('div.tool').forEach((e) => { e.style.display = 'none'; });
-					document.querySelector('div.tool.rectangle').style.display = 'block';
-
-					let color = document.querySelector('div.tool.rectangle .color input').value || null;
-
-					this.tool.rectangle.object = new UI.Rectangle('rect').setColor(color);
-				});
-
-				document.getElementById('text').addEventListener('click', (e) => {
-					this.tool.type = 'text';
-
-					document.querySelectorAll('div.tool').forEach((e) => { e.style.display = 'none'; });
-					document.querySelector('div.tool.text').style.display = 'block';
-
-					let text = document.querySelector('div.tool.text .text input').value;
-					let align = document.querySelector('div.tool.text .align input').value || 'left';
-					let valign = document.querySelector('div.tool.text .valign input').value || 'top';
-					let color = document.querySelector('div.tool.text .color input').value || 'white';
-					let bgcolor = document.querySelector('div.tool.text .bgcolor input').value || null;
-
-					this.tool.text.object = new You.Text('text')
-												.setText(text)
-												.setAlign(align)
-												.setVAlign(valign)
-												.setColor(color)
-												.setBackgroundColor(bgcolor);
-				});
-
-				this.tool.type = this.tool.types[0];
-
-				this.tool.move = {
-					drag: false,
-					position: null,
-					start: null,
-					selected: null
-				};
-
-				this.tool.rectangle = {
-					drag: false,
-				};
-
-				this.tool.text = {
-					drag: false,
-				};
-
-				// Panel
 				this.panel = new UI.Panel('panel').setSize([200, 200]);
 
 				this.panel.clip = false;
@@ -88,230 +26,40 @@ var UIEditor = {
 					(You.canvas.height - this.panel.height) / 2
 				];
 
-				// Button
+				this.states = new You.State.Context('state context')
+								.addComponents(
+									new UI.Main.MoveState('move', this),
+									new UI.Main.RectangleState('rectangle', this),
+									new UI.Main.TextState('text', this),
+									new UI.Main.ButtonState('button', this),
+								);
+
+				this.states.transit('move');
+
+				[ 'move', 'rectangle', 'text', 'button' ].forEach((t) => {
+					document.getElementById(t).addEventListener('click', (e) => {
+						this.states.transit(`${t}`);
+					});
+				});
 			},
+
 			out() {
-				this.tool = null;
+				this.states = null;
 
 				this.panel = null;
 			},
+
 			update(delta) {
-				let mouse = You.Input.mouse;
-
-				if (this.tool.type == 'move') {
-					use(this.tool.move, function (scene) {
-						if (mouse.down) {
-							if (this.drag == false) {
-								if (this.selected) {
-									this.position = Array.from(this.selected.position);
-									this.positionBeforeFit = Array.from(this.selected.position);
-									this.start = mouse.down;
-									this.selected.alpha = 0.5;
-
-									this.drag = true;
-								}
-							}
-
-							scene.panel.fitAll();
-						}
-
-						if (mouse.move) {
-							if (this.drag) {
-								this.selected.position = this.position.addv(mouse.move.subv(this.start));
-								this.positionBeforeFit = Array.from(this.selected.position);
-							}
-							else {
-								this.selected = null;
-
-								for (let i = scene.panel.components.length-1; i >= 0; i--) {
-									if (scene.panel.components[i].contain(scene.panel.globalToLocal(mouse.move))) {
-										this.selected = scene.panel.components[i];
-										break;
-									}
-								}
-							}
-
-							scene.panel.fitAll();
-						}
-
-						if (mouse.up) {
-							if (this.drag) {
-								this.selected.position = this.position.addv(mouse.up.subv(this.start));
-								this.selected.alpha = 1;
-
-								this.drag = false;
-							}
-
-							scene.panel.fitAll();
-						}
-					}, this);
-				}
-				else if (this.tool.type == 'rectangle') {
-					use(this.tool.rectangle, function (scene) {
-						if (mouse.down) {
-							if (this.drag == false) {
-								this.start = mouse.down;
-
-								let color = document.querySelector('div.tool.rectangle .color input').value || null;
-
-								this.object.setColor(color);
-
-								this.drag = true;
-							}
-						}
-
-						if (mouse.move) {
-							if (this.drag) {
-								let start = [...this.start];
-								let end = mouse.move;
-
-								if (start[0] > end[0]) {
-									[start[0], end[0]] = [end[0], start[0]];
-								}
-
-								if (start[1] > end[1]) {
-									[start[1], end[1]] = [end[1], start[1]];
-								}
-
-								let interval = [scene.panel.grid.columnInterval, scene.panel.grid.rowInterval];
-
-								start = scene.panel.grid.fit(scene.panel.globalToLocal(start));
-								end = scene.panel.grid.fit(scene.panel.globalToLocal(end));
-
-								this.object.position = start;
-								this.object.size = end.addv(interval).subv(start);
-							}
-						}
-
-						if (mouse.up) {
-							if (this.drag) {
-								if (this.object) {
-									scene.panel.addComponents(this.object);
-								}
-								
-								let color = document.querySelector('div.tool.rectangle .color input').value || null;
-
-								this.object = new UI.Rectangle('rect', [0, 0], [0, 0], color);
-
-								this.drag = false;
-							}
-						}
-					}, this);
-				}
-				else if (this.tool.type == 'text') {
-					use(this.tool.text, function (scene) {
-						if (mouse.down) {
-							if (this.drag == false) {
-								this.start = mouse.down;
-
-								let text = document.querySelector('div.tool.text .text input').value;
-								let align = document.querySelector('div.tool.text .align input').value || 'left';
-								let valign = document.querySelector('div.tool.text .valign input').value || 'top';
-								let color = document.querySelector('div.tool.text .color input').value || 'white';
-								let bgcolor = document.querySelector('div.tool.text .bgcolor input').value || null;
-
-								this.object.setText(text).setAlign(align).setVAlign(valign).setColor(color).setBackgroundColor(bgcolor);
-								
-								this.drag = true;
-							}
-						}
-
-						if (mouse.move) {
-							if (this.drag) {
-								let start = [...this.start];
-								let end = mouse.move;
-
-								if (start[0] > end[0]) {
-									[start[0], end[0]] = [end[0], start[0]];
-								}
-
-								if (start[1] > end[1]) {
-									[start[1], end[1]] = [end[1], start[1]];
-								}
-
-								let interval = [scene.panel.grid.columnInterval, scene.panel.grid.rowInterval];
-
-								start = scene.panel.grid.fit(scene.panel.globalToLocal(start));
-								end = scene.panel.grid.fit(scene.panel.globalToLocal(end));
-
-								this.object.position = start;
-								this.object.size = end.addv(interval).subv(start);
-							}
-						}
-
-						if (mouse.up) {
-							if (this.drag) {
-								let text = document.querySelector('div.tool.text .text input').value;
-								let align = document.querySelector('div.tool.text .align input').value || 'left';
-								let valign = document.querySelector('div.tool.text .valign input').value || 'top';
-								let color = document.querySelector('div.tool.text .color input').value || 'white';
-								let bgcolor = document.querySelector('div.tool.text .bgcolor input').value || null;
-								
-								if (this.object) {
-									this.object.setText(text).setAlign(align).setVAlign(valign).setColor(color).setBackgroundColor(bgcolor);
-									scene.panel.addComponents(this.object);
-								}
-
-								this.object = new You.Text('text')
-												.setText(text)
-												.setAlign(align).setVAlign(align)
-												.setColor(color)
-												.setBackgroundColor(bgcolor);
-
-								this.drag = false;
-							}
-						}
-					}, this);
-				}
+				this.states.update(delta);
 			},
+			
 			draw(context) {
-				context.save();
-
 				this.panel.draw(context);
 
-				if (this.tool.type == 'move') {
-					use(this.tool.move, function (scene) {
-						if (this.drag) {
-							let tempPosition = this.selected.position;
-
-							this.selected.position = scene.panel.localToGlobal(this.positionBeforeFit);
-							this.selected.alpha = 1;
-							this.selected.draw(context);
-							this.selected.alpha = 0.5;
-							this.selected.position = tempPosition;
-						}
-						else {
-							if (this.selected) {
-								context.globalAlpha = 1;
-								context.strokeStyle = 'rgba(0, 255, 0, 1)';
-								context.strokeRect(...scene.panel.localToGlobal(this.selected.position), ...this.selected.size);
-							}
-						}
-					}, this);
-				}
-				else if (this.tool.type == 'rectangle') {
-					use(this.tool.rectangle, function (scene) {
-						if (this.drag) {
-							this.object.position = this.object.position.addv(scene.panel.position);
-							this.object.draw(context);
-							this.object.position = this.object.position.subv(scene.panel.position);
-						}
-					}, this);
-				}
-				else if (this.tool.type == 'text') {
-					use(this.tool.text, function (scene) {
-						if (this.drag) {
-							this.object.position = this.object.position.addv(scene.panel.position);
-							this.object.draw(context);
-							this.object.position = this.object.position.subv(scene.panel.position);
-						}
-					}, this);
-				}
-
-				context.restore();
-			}
+				this.states.draw(context);
+			},
 		},
-	}
+	},
 };
 
 var UI = {};
@@ -320,16 +68,16 @@ UI.Panel = class extends You.Area {
 	constructor(name) {
 		super(name);
 
-		this.grid = new UI.Grid('grid', 20, 20);
+		// this.grid = new UI.Grid('grid', 20, 20);
 
 		this.clip = true;
 	}
 
-	fitAll() {
-		this.components.forEach((c) => {
-			c.position = this.grid.fit(c.position);
-		});
-	}
+	// fitAll() {
+	// 	this.components.forEach((c) => {
+	// 		c.position = this.grid.fit(c.position);
+	// 	});
+	// }
 
 	draw(context, ...args) {
 		context.save();
@@ -342,7 +90,7 @@ UI.Panel = class extends You.Area {
 		context.rect(0, 0, ...this.size);
 		context.clip();
 
-		this.grid.draw(context, ...args);
+		// this.grid.draw(context, ...args);
 
 		if (this.clip == false) {
 			context.restore();
@@ -428,8 +176,359 @@ UI.Grid = class extends You.Object {
 
 	fit(position) {
 		return [
-			Math.floor((position[0]) / this.columnInterval) * this.columnInterval,
-			Math.floor((position[1]) / this.rowInterval) * this.rowInterval
+			Math.floor((position[0] + this.columnInterval / 2) / this.columnInterval) * this.columnInterval,
+			Math.floor((position[1] + this.rowInterval / 2) / this.rowInterval) * this.rowInterval
 		];
+	}
+};
+
+
+UI.Main = {};
+
+UI.Main.MoveState = class extends You.State {
+	constructor(name, scene) {
+		super(name);
+
+		this.scene = scene;
+
+		this.drag = false;
+
+		this.selectedObject = null;
+	}
+
+	onEnter() {
+		this.drag = false;
+
+		this.selectedObject = null;
+	}
+
+	onExit() {}
+
+	onUpdate(delta) {
+		let scene = this.scene;
+
+		let mouse = You.Input.mouse;
+
+		if (mouse.down) {
+			if (!this.drag) {
+				this.deltaPosition = [0, 0];
+				this.anchorPosition = mouse.down;
+
+				if (this.selectedObject) {
+					this.objectPosition = [...this.selectedObject.position];
+					this.globalObjectPosition = scene.panel.localToGlobal(this.selectedObject.position);
+					
+					this.selectedObject.alpha = 0.5;
+				}
+				else {
+					this.objectPosition = [...scene.panel.position];
+				}
+
+				this.drag = true;
+			}
+		}
+
+		if (mouse.move) {
+			if (this.drag) {
+				this.deltaPosition = mouse.move.subv(this.anchorPosition);
+
+				if (this.selectedObject) {
+					this.selectedObject.position = scene.panel.grid.fit(this.objectPosition.addv(this.deltaPosition));
+				}
+				else {
+					scene.panel.position = this.objectPosition.addv(this.deltaPosition);
+				}
+			}
+			else {
+				this.selectedObject = null;
+
+				for (let comps = scene.panel.components, i = comps.length - 1; i >= 0; i--) {
+					if (comps[i].contain(scene.panel.globalToLocal(mouse.move))) {
+						this.selectedObject = comps[i];
+						break;
+					}
+				}
+			}
+		}
+
+		if (mouse.up) {
+			if (this.drag) {
+				if (this.selectedObject) {
+					this.selectedObject.alpha = 1;
+				}
+
+				this.drag = false;
+			}
+		}
+	}
+
+	onDraw(context) {
+		let scene = this.scene;
+
+		if (this.drag) {
+			if (this.selectedObject) {
+				let tempPosition = this.selectedObject.position;
+
+				this.selectedObject.position = this.globalObjectPosition.addv(this.deltaPosition);
+				this.selectedObject.alpha = 1;
+				this.selectedObject.draw(context);
+
+				this.selectedObject.alpha = 0.5;
+				this.selectedObject.position = tempPosition;
+			}
+		}
+		else {
+			if (this.selectedObject) {
+				context.save();
+
+				context.globalAlpha = 1;
+				context.strokeStyle = 'green';
+				context.strokeRect(...scene.panel.localToGlobal(this.selectedObject.position), ...this.selectedObject.size);
+
+				context.restore();
+			}
+		}
+	}
+};
+
+UI.Main.RectangleState = class extends You.State {
+	constructor(name, scene) {
+		super(name);
+
+		this.scene = scene;
+
+		this.drag = false;
+
+		this.object = null;
+	}
+
+	createObject() {
+		let color = document.querySelector('div.tool.rectangle .color input').value || 'white';
+
+		this.object = new UI.Rectangle('rectangle')
+						.setColor(color);
+
+		this.scene.panel.addComponents(this.object);
+	}
+
+	onEnter() {
+		this.drag = false;
+
+		document.querySelector('div.tool.' + this.name).style.display = 'block';
+	}
+
+	onExit() {
+		document.querySelector('div.tool.' + this.name).style.display = 'none';
+	}
+
+	onUpdate(delta) {
+		let scene = this.scene;
+
+		let mouse = You.Input.mouse;
+
+		if (mouse.down) {
+			if (!this.drag) {
+				this.anchorPosition = mouse.down;
+
+				this.createObject();
+
+				this.drag = true;
+			}
+		}
+
+		if (mouse.move) {
+			if (this.drag) {
+				let start = [...this.anchorPosition];
+				let end = mouse.move;
+
+				if (start[0] > end[0]) {
+					[start[0], end[0]] = [end[0], start[0]];
+				}
+
+				if (start[1] > end[1]) {
+					[start[1], end[1]] = [end[1], start[1]];
+				}
+
+				start = scene.panel.grid.fit(scene.panel.globalToLocal(start));
+				end = scene.panel.grid.fit(scene.panel.globalToLocal(end));
+
+				let interval = [scene.panel.grid.columnInterval, scene.panel.grid.rowInterval];
+
+				this.object.position = start;
+				this.object.size = end.addv(interval).subv(start);
+			}
+		}
+
+		if (mouse.up) {
+			this.drag = false;
+		}
+	}
+};
+
+UI.Main.TextState = class extends You.State {
+	constructor(name, scene) {
+		super(name);
+
+		this.scene = scene;
+
+		this.drag = false;
+
+		this.object = null;
+	}
+
+	onEnter() {
+		this.drag = false;
+
+		this.object = null;
+
+		document.querySelector('div.tool.' + this.name).style.display = 'block';
+	}
+
+	onExit() {
+		document.querySelector('div.tool.' + this.name).style.display = 'none';
+	}
+
+	createObject() {
+		let text = document.querySelector('div.tool.text .text input').value;
+		let align = document.querySelector('div.tool.text .align input').value || 'left';
+		let valign = document.querySelector('div.tool.text .valign input').value || 'top';
+		let color = document.querySelector('div.tool.text .color input').value || 'white';
+		let bgcolor = document.querySelector('div.tool.text .bgcolor input').value || 'black';
+
+		this.object = new You.Text('text')
+						.setText(text)
+						.setAlign(align)
+						.setVAlign(valign)
+						.setColor(color)
+						.setBackgroundColor(bgcolor);
+
+		this.scene.panel.addComponents(this.object);
+	}
+
+	onUpdate(delta) {
+		let scene = this.scene;
+
+		let mouse = You.Input.mouse;
+
+		if (mouse.down) {
+			if (!this.drag) {
+				this.anchorPosition = mouse.down;
+
+				this.createObject();
+
+				this.drag = true;
+			}
+		}
+
+		if (mouse.move) {
+			if (this.drag) {
+				let start = [...this.anchorPosition];
+				let end = mouse.move;
+
+				if (start[0] > end[0]) {
+					[start[0], end[0]] = [end[0], start[0]];
+				}
+
+				if (start[1] > end[1]) {
+					[start[1], end[1]] = [end[1], start[1]];
+				}
+
+				start = scene.panel.grid.fit(scene.panel.globalToLocal(start));
+				end = scene.panel.grid.fit(scene.panel.globalToLocal(end));
+
+				let interval = [scene.panel.grid.columnInterval, scene.panel.grid.rowInterval];
+
+				this.object.position = start;
+				this.object.size = end.addv(interval).subv(start);
+			}
+		}
+
+		if (mouse.up) {
+			this.drag = false;
+		}
+	}
+};
+
+UI.Main.ButtonState = class extends You.State {
+	constructor(name, scene) {
+		super(name);
+
+		this.scene = scene;
+
+		this.drag = false;
+
+		this.object = null;
+	}
+
+	onEnter() {
+		this.drag = false;
+
+		this.object = null;
+
+		document.querySelector('div.tool.' + this.name).style.display = 'block';
+	}
+
+	createObject() {
+		let text = document.querySelector('div.tool.button .text input').value;
+		let align = document.querySelector('div.tool.button .align input').value || 'center';
+		let valign = document.querySelector('div.tool.button .valign input').value || 'middle';
+		let color = document.querySelector('div.tool.button .color input').value || 'black';
+		let bgcolor = document.querySelector('div.tool.button .bgcolor input').value || 'white';
+
+		this.object = new You.Button('button')
+						.setText(text)
+						.setAlign(align)
+						.setVAlign(valign)
+						.setColor(color)
+						.setBackgroundColor(bgcolor);
+
+		this.scene.panel.addComponents(this.object);
+	}
+
+	onExit() {
+		document.querySelector('div.tool.' + this.name).style.display = 'none';
+	}
+
+	onUpdate(delta) {
+		let scene = this.scene;
+
+		let mouse = You.Input.mouse;
+
+		if (mouse.down) {
+			if (!this.drag) {
+				this.anchorPosition = mouse.down;
+
+				this.createObject();
+
+				this.drag = true;
+			}
+		}
+
+		if (mouse.move) {
+			if (this.drag) {
+				let start = [...this.anchorPosition];
+				let end = mouse.move;
+
+				if (start[0] > end[0]) {
+					[start[0], end[0]] = [end[0], start[0]];
+				}
+
+				if (start[1] > end[1]) {
+					[start[1], end[1]] = [end[1], start[1]];
+				}
+
+				start = scene.panel.grid.fit(scene.panel.globalToLocal(start));
+				end = scene.panel.grid.fit(scene.panel.globalToLocal(end));
+
+				let interval = [scene.panel.grid.columnInterval, scene.panel.grid.rowInterval];
+
+				this.object.position = start;
+				this.object.size = end.addv(interval).subv(start);
+			}
+		}
+
+		if (mouse.up) {
+			this.drag = false;
+		}
 	}
 };

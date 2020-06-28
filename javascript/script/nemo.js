@@ -10,7 +10,38 @@ var Nemo = {
 				speed: [1, 100, 0.5, 100],
 				color: 'white',
 				money: 10000,
-			}
+			},
+			{
+				size: [1, 10, 1, 100], // level, current, next, price
+				speed: [1, 100, 0.5, 100],
+				color: 'white',
+				money: 10000,
+			},
+			{
+				size: [1, 10, 1, 100], // level, current, next, price
+				speed: [1, 100, 0.5, 100],
+				color: 'white',
+				money: 10000,
+			},
+			{
+				size: [1, 10, 1, 100], // level, current, next, price
+				speed: [1, 100, 0.5, 100],
+				color: 'white',
+				money: 10000,
+			},
+			{
+				size: [1, 10, 1, 100], // level, current, next, price
+				speed: [1, 100, 0.5, 100],
+				color: 'white',
+				money: 10000,
+			},
+			{
+				size: [1, 10, 1, 100], // level, current, next, price
+				speed: [1, 100, 0.5, 100],
+				color: 'white',
+				money: 10000,
+			},
+
 		],
 		character: null,
 		theme: {
@@ -29,9 +60,11 @@ var Nemo = {
 			in() {
 				this.prgMessage = new Progress(2, 8, 10, 2, { begin: false, end: false });
 			},
+
 			out() {
 				this.prgMessage = null;
 			},
+
 			update(delta) {
 				this.prgMessage.update(delta);
 
@@ -41,6 +74,7 @@ var Nemo = {
 					You.scene.transit(Nemo.scene.character);
 				}
 			},
+
 			draw(context) {
 				context.save();
 
@@ -59,54 +93,76 @@ var Nemo = {
 				context.fillText("press Enter key to continue", You.canvas.width / 2, You.canvas.height * 3 / 4);
 
 				context.restore();
-			}
+			},
 		},
 
 		character: {
 			in() {
-				this.margin = {
-					left: 50,
-					right: 50,
-					top: 50,
-					bottom: 50
-				};
+				let [sw, sh] = [You.canvas.width, You.canvas.height];
 
-				this.inner = {
-					width: You.canvas.width - this.margin.left - this.margin.right,
-					height: You.canvas.height - this.margin.top - this.margin.bottom
-				}
-
-				this.choices = [];
+				this.panel = new You.ScrollPanel('panel')
+								.setPosition([sw * 2 / 20, sh * 2 / 20])
+								.setSize([sw * 16 / 20, sh * 16 / 20])
+								.setPanelSize([sw * 16 / 20, sh * (3 * Nemo.asset.characters.length - 1) / 20])
+								.setColor('rgba(255, 0, 0, 0.1)')
+								.setClip(true);
 
 				for (let i = 0; i < Nemo.asset.characters.length; i++) {
-					let button = new You.Button('button')
-								.setPosition([this.margin.left, this.margin.top])
-								.setSize([this.inner.width, 80])
+					let button = new You.Button('button' + i)
+								.setPosition([0, sh * 3 * i / 20 ])
+								.setSize([sw * 16 / 20, sh * 2 / 20])
 								.setPadding([10, 10])
 								.setText(`소지금 ${Nemo.asset.characters[i].money}
 										크기 ${Nemo.asset.characters[i].size[1]}
 										이동속도 ${Nemo.asset.characters[i].speed[1]}`)
-								.setTextAlign('left')
-								.setTextVerticalAlign('top')
+								.setAlign('left')
+								.setVAlign('top')
 								.setBackgroundColor('rgba(255, 255, 255, 0.1)');
 
 					button.addHandler(() => {
 						You.scene.transit(Nemo.scene.main, i);
 					});
 
-					this.choices.push(button);
+					this.panel.addComponent(button);
 				}
+			},
 
-				this.controller = new Nemo.CharacterController('character controller', this);
-			},
 			out() {
-				this.controller = null;
+				this.panel = null;
 			},
+
 			update(delta) {
-				this.controller.update(delta);
+				let mouse = You.Input.mouse;
+
+				// if (mouse.down) {
+				// 	this.panel.mouseDown({
+				// 		x: mouse.down[0],
+				// 		y: mouse.down[1],
+				// 		stop: false
+				// 	});
+				// }
+
+				// if (mouse.move) {
+				// 	this.panel.mouseMove({
+				// 		x: mouse.move[0],
+				// 		y: mouse.move[1],
+				// 		stop: false
+				// 	});
+				// }
+
+				// if (mouse.up) {
+				// 	this.panel.mouseUp({
+				// 		x: mouse.up[0],
+				// 		y: mouse.up[1],
+				// 		stop: false
+				// 	});
+				// }
+
+				this.panel.update(delta);
 			},
+
 			draw(context) {
-				this.controller.draw(context);
+				this.panel.draw(context);
 			},
 		},
 
@@ -115,6 +171,8 @@ var Nemo = {
 				if (characterIndex != undefined) {
 					Nemo.asset.character = Nemo.asset.characters[characterIndex];
 				}
+
+
 				
 				this.buttons = {
 					menu: {
@@ -122,29 +180,29 @@ var Nemo = {
 								.setPosition([10, 10])
 								.setSize([60, 50])
 								.setText('상태')
-								.setTextAlign('center')
-								.setTextVerticalAlign('middle')
+								.setAlign('center')
+								.setVAlign('middle')
 								.setBackgroundColor('rgba(255, 0, 0, 0.5)'),
 						upgrade: new You.Button('upgrade button')
 								.setPosition([80, 10])
 								.setSize([100, 50])
 								.setText('업그레이드')
-								.setTextAlign('center')
-								.setTextVerticalAlign('middle')
+								.setAlign('center')
+								.setVAlign('middle')
 								.setBackgroundColor('rgba(255, 0, 0, 0.5)'),
 						game: new You.Button('game button')
 								.setPosition([190, 10])
 								.setSize([80, 50])
 								.setText('게임 시작')
-								.setTextAlign('center')
-								.setTextVerticalAlign('middle')
+								.setAlign('center')
+								.setVAlign('middle')
 								.setBackgroundColor('rgba(255, 0, 0, 0.5)'),
 						exit: new You.Button('exit button')
 								.setPosition([280, 10])
 								.setSize([80, 50])
 								.setText('게임 종료')
-								.setTextAlign('center')
-								.setTextVerticalAlign('middle')
+								.setAlign('center')
+								.setVAlign('middle')
 								.setBackgroundColor('rgba(255, 0, 0, 0.5)'),
 					},
 					upgrade: {
@@ -152,30 +210,33 @@ var Nemo = {
 								.setPosition([160, 80])
 								.setSize([100, 30])
 								.setText(`$${Nemo.asset.character.size[3]}`)
-								.setTextAlign('center')
-								.setTextVerticalAlign('middle')
+								.setAlign('center')
+								.setVAlign('middle')
 								.setBackgroundColor('rgba(255, 0, 0, 0.5)'),
 						speed: new You.Button('upgrade button')
 								.setPosition([160, 120])
 								.setSize([100, 30])
 								.setText(`$${Nemo.asset.character.speed[3]}`)
-								.setTextAlign('center')
-								.setTextVerticalAlign('middle')
+								.setAlign('center')
+								.setVAlign('middle')
 								.setBackgroundColor('rgba(255, 0, 0, 0.5)'),
 					},
 				};
 
 				this.controller = new Nemo.MainController('main controller', this);
 			},
+
 			out() {
 				this.controller = null;
 			},
+
 			update(delta) {
 				this.controller.update(delta);
 			},
+
 			draw(context) {
 				this.controller.draw(context);
-			}
+			},
 		},
 
 		game: {
@@ -235,6 +296,7 @@ var Nemo = {
 				this.prgTitle = new Progress(0, 1, 5, null, { begin: false, end: false });
 				this.prgMessage = new Progress(2, 8, 10, 2, { begin: false, end: false });
 			},
+
 			out() {
 				// this.bgm.pause();
 				// this.bgm.currentTime = 0;
@@ -243,6 +305,7 @@ var Nemo = {
 				this.prgTitle = null;
 				this.prgMessage = null;
 			},
+
 			update(delta) {
 				this.prgTitle.update(delta);
 				this.prgMessage.update(delta);
@@ -256,6 +319,7 @@ var Nemo = {
 					}
 				}
 			},
+
 			draw(context) {
 				context.globalAlpha = this.prgTitle.rate;
 				context.font = "24px Arial";
@@ -274,7 +338,7 @@ var Nemo = {
 				context.font = "14px Arial";
 				context.fillText("Score ", You.canvas.width / 2, You.canvas.height / 2);
 				context.fillText(`${Math.floor(this.score)}`, You.canvas.width / 2, You.canvas.height / 2 + 20);
-			}
+			},
 		}
 	}
 };
@@ -391,56 +455,58 @@ Nemo.NemoObject = class extends Nemo.GameObject {
 };
 
 // Character Scene
-Nemo.SelectState = class extends You.State {
-	constructor(name, scene) {
-		super(name);
+// Nemo.Character = {};
 
-		this.scene = scene;
-	}
+// Nemo.SelectState = class extends You.State {
+// 	constructor(name, scene) {
+// 		super(name);
 
-	onUpdate(delta) {
-		let scene = this.scene;
+// 		this.scene = scene;
+// 	}
 
-		let mouse_event = You.input.mouse;
-		if (mouse_event) {
-			if (mouse_event[0] == 'up') {
-				let rect = You.canvas.getBoundingClientRect();
+// 	onUpdate(delta) {
+// 		let scene = this.scene;
 
-				let rx = mouse_event[1].clientX - rect.left;
-				let ry = mouse_event[1].clientY - rect.top;
+// 		let mouse_event = You.input.mouse;
+// 		if (mouse_event) {
+// 			if (mouse_event[0] == 'up') {
+// 				let rect = You.canvas.getBoundingClientRect();
 
-				Object.values(scene.choices).forEach((button) => button.handle([rx, ry]));
-			}
-		}
-	}
+// 				let rx = mouse_event[1].clientX - rect.left;
+// 				let ry = mouse_event[1].clientY - rect.top;
 
-	onDraw(context) {
-		let scene = this.scene;
+// 				Object.values(scene.choices).forEach((button) => button.handle([rx, ry]));
+// 			}
+// 		}
+// 	}
 
-		Object.values(scene.choices).forEach((button) => button.draw(context));
-	}
-};
+// 	onDraw(context) {
+// 		let scene = this.scene;
 
-Nemo.CharacterController = class extends You.Object {
-	constructor(name, scene) {
-		super(name);
+// 		Object.values(scene.choices).forEach((button) => button.draw(context));
+// 	}
+// };
 
-		this.scene = scene;
+// Nemo.CharacterController = class extends You.Object {
+// 	constructor(name, scene) {
+// 		super(name);
 
-		this.states = new You.State.Context('state context')
-							.addComponent(new Nemo.SelectState('select state', scene));
+// 		this.scene = scene;
 
-		this.states.transit('select state');
-	}
+// 		this.states = new You.State.Context('state context')
+// 							.addComponent(new Nemo.SelectState('select state', scene));
 
-	onUpdate(delta) {
-		this.states.update(delta);
-	}
+// 		this.states.transit('select state');
+// 	}
 
-	onDraw(context) {
-		this.states.draw(context);
-	}
-};
+// 	onUpdate(delta) {
+// 		this.states.update(delta);
+// 	}
+
+// 	onDraw(context) {
+// 		this.states.draw(context);
+// 	}
+// };
 
 // Main Scene
 Nemo.StatsState = class extends You.State {
@@ -554,8 +620,6 @@ Nemo.MainController = class extends You.Object {
 
 		this.scene = scene;
 
-
-
 		this.states = new You.State.Context('state context')
 							.addComponent(new Nemo.StatsState('stats state', scene))
 							.addComponent(new Nemo.UpgradeState('upgrade state', scene));
@@ -607,12 +671,12 @@ Nemo.MainController = class extends You.Object {
 		});
 	}
 
-	onUpdate(delta) {
-		this.states.update(delta);
+	onUpdate(delta, ...args) {
+		this.states.update(delta, ...args);
 	}
 
-	onDraw(context) {
-		this.states.draw(context);
+	onDraw(context, ...args) {
+		this.states.draw(context, ...args);
 	}
 };
 
