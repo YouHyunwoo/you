@@ -125,6 +125,14 @@ var Nemo = {
 
 					this.panel.addComponent(button);
 				}
+
+				this.title = new You.Text('title')
+								.setPosition([0, 0])
+								.setSize([sw, sh / 10])
+								.setFont('24px Arial')
+								.setText('Character')
+								.setAlign('center')
+								.setVAlign('middle');
 			},
 
 			out() {
@@ -132,36 +140,12 @@ var Nemo = {
 			},
 
 			update(delta) {
-				let mouse = You.Input.mouse;
-
-				// if (mouse.down) {
-				// 	this.panel.mouseDown({
-				// 		x: mouse.down[0],
-				// 		y: mouse.down[1],
-				// 		stop: false
-				// 	});
-				// }
-
-				// if (mouse.move) {
-				// 	this.panel.mouseMove({
-				// 		x: mouse.move[0],
-				// 		y: mouse.move[1],
-				// 		stop: false
-				// 	});
-				// }
-
-				// if (mouse.up) {
-				// 	this.panel.mouseUp({
-				// 		x: mouse.up[0],
-				// 		y: mouse.up[1],
-				// 		stop: false
-				// 	});
-				// }
-
 				this.panel.update(delta);
 			},
 
 			draw(context) {
+				this.title.draw(context);
+
 				this.panel.draw(context);
 			},
 		},
@@ -172,8 +156,16 @@ var Nemo = {
 					Nemo.asset.character = Nemo.asset.characters[characterIndex];
 				}
 
-
+				let [sw, sh] = [You.canvas.width, You.canvas.height];
 				
+				this.states = new You.State.Context('state context')
+									.addComponents(
+										new Nemo.StatsState('stats state', this),
+										new Nemo.UpgradeState('upgrade state', this)
+									);
+
+				this.states.transit('stats state');
+
 				this.buttons = {
 					menu: {
 						stats: new You.Button('stats button')
@@ -223,19 +215,67 @@ var Nemo = {
 					},
 				};
 
-				this.controller = new Nemo.MainController('main controller', this);
+				this.buttons.menu.stats.addHandler(() => {
+					if (this.states.state.name != 'stats state') {
+						this.states.transit('stats state');
+					}
+				});
+
+				this.buttons.menu.upgrade.addHandler(() => {
+					if (this.states.state.name != 'upgrade state') {
+						this.states.transit('upgrade state');
+					}
+				});
+
+				this.buttons.menu.game.addHandler(() => {
+					You.scene.transit(Nemo.scene.game);
+				});
+
+				this.buttons.menu.exit.addHandler(() => {
+					You.scene.transit(Nemo.scene.title);
+				});
+
+				this.buttons.upgrade.size.addHandler(() => {
+					let stats = Nemo.asset.character;
+					if (stats.size[0] < 10 && stats.money >= stats.size[3]) {
+						stats.size[0]++;
+						stats.size[1] += stats.size[2];
+						stats.size[2] = stats.size[2] * (stats.size[0] + 1);
+						stats.money -= stats.size[3];
+						stats.size[3] = stats.size[3] * (stats.size[0] + 3);
+						this.buttons.upgrade.size.setText('$' + stats.size[3]);
+					}
+				});
+
+				this.buttons.upgrade.speed.addHandler(() => {
+					let stats = Nemo.asset.character;
+					if (stats.speed[0] < 10 && stats.money >= stats.speed[3]) {
+						stats.speed[0]++;
+						stats.speed[1] += stats.speed[2];
+						stats.speed[2] = stats.speed[2] * (stats.speed[0] + 1);
+						stats.money -= stats.speed[3];
+						stats.speed[3] = stats.speed[3] * (stats.speed[0] + 3);
+						this.buttons.upgrade.speed.setText('$' + stats.speed[3]);
+					}
+				});
 			},
 
 			out() {
-				this.controller = null;
+				this.states = null;
 			},
 
 			update(delta) {
-				this.controller.update(delta);
+				this.states.update(delta);
+
+				for (let k in this.buttons) {
+					for (let l in this.buttons[k]) {
+						this.buttons[k][l].update(delta)
+					}
+				}
 			},
 
 			draw(context) {
-				this.controller.draw(context);
+				this.states.draw(context);
 			},
 		},
 
@@ -400,13 +440,7 @@ Nemo.Moveable = class extends You.Object {
 };
 
 Nemo.Collider = class extends You.Object {
-	constructor(name) {
-		super(name);
-	}
-
-	hit(collider) {
-
-	}
+	hit(collider) {}
 };
 
 Nemo.BoxCollider = class extends Nemo.Collider {
@@ -435,9 +469,9 @@ Nemo.BoxCollider = class extends Nemo.Collider {
 };
 
 Nemo.NemoObject = class extends Nemo.GameObject {
-	constructor(name) {
-		super(name);
-	}
+	// constructor(name) {
+	// 	super(name);
+	// }
 
 	growUp(amount) {
 		let sr = this.sr;
@@ -453,60 +487,6 @@ Nemo.NemoObject = class extends Nemo.GameObject {
 		return sr.width * sr.height;
 	}
 };
-
-// Character Scene
-// Nemo.Character = {};
-
-// Nemo.SelectState = class extends You.State {
-// 	constructor(name, scene) {
-// 		super(name);
-
-// 		this.scene = scene;
-// 	}
-
-// 	onUpdate(delta) {
-// 		let scene = this.scene;
-
-// 		let mouse_event = You.input.mouse;
-// 		if (mouse_event) {
-// 			if (mouse_event[0] == 'up') {
-// 				let rect = You.canvas.getBoundingClientRect();
-
-// 				let rx = mouse_event[1].clientX - rect.left;
-// 				let ry = mouse_event[1].clientY - rect.top;
-
-// 				Object.values(scene.choices).forEach((button) => button.handle([rx, ry]));
-// 			}
-// 		}
-// 	}
-
-// 	onDraw(context) {
-// 		let scene = this.scene;
-
-// 		Object.values(scene.choices).forEach((button) => button.draw(context));
-// 	}
-// };
-
-// Nemo.CharacterController = class extends You.Object {
-// 	constructor(name, scene) {
-// 		super(name);
-
-// 		this.scene = scene;
-
-// 		this.states = new You.State.Context('state context')
-// 							.addComponent(new Nemo.SelectState('select state', scene));
-
-// 		this.states.transit('select state');
-// 	}
-
-// 	onUpdate(delta) {
-// 		this.states.update(delta);
-// 	}
-
-// 	onDraw(context) {
-// 		this.states.draw(context);
-// 	}
-// };
 
 // Main Scene
 Nemo.StatsState = class extends You.State {
@@ -611,72 +591,6 @@ Nemo.UpgradeState = class extends You.State {
 		context.fillText('이동속도 업그레이드', 10, 120 + 15);
 
 		Object.values(scene.buttons.upgrade).forEach((button) => button.draw(context));
-	}
-};
-
-Nemo.MainController = class extends You.Object {
-	constructor(name, scene) {
-		super(name);
-
-		this.scene = scene;
-
-		this.states = new You.State.Context('state context')
-							.addComponent(new Nemo.StatsState('stats state', scene))
-							.addComponent(new Nemo.UpgradeState('upgrade state', scene));
-
-		this.states.transit('stats state');
-
-		scene.buttons.menu.stats.addHandler(() => {
-			if (this.states.state.name != 'stats state') {
-				this.states.transit('stats state');
-			}
-		});
-
-		scene.buttons.menu.upgrade.addHandler(() => {
-			if (this.states.state.name != 'upgrade state') {
-				this.states.transit('upgrade state');
-			}
-		});
-
-		scene.buttons.menu.game.addHandler(() => {
-			You.scene.transit(Nemo.scene.game);
-		});
-
-		scene.buttons.menu.exit.addHandler(() => {
-			You.scene.transit(Nemo.scene.title);
-		});
-
-		scene.buttons.upgrade.size.addHandler(() => {
-			let stats = Nemo.asset.character;
-			if (stats.size[0] < 10 && stats.money >= stats.size[3]) {
-				stats.size[0]++;
-				stats.size[1] += stats.size[2];
-				stats.size[2] = stats.size[2] * (stats.size[0] + 1);
-				stats.money -= stats.size[3];
-				stats.size[3] = stats.size[3] * (stats.size[0] + 3);
-				scene.buttons.upgrade.size.setText('$' + stats.size[3]);
-			}
-		});
-
-		scene.buttons.upgrade.speed.addHandler(() => {
-			let stats = Nemo.asset.character;
-			if (stats.speed[0] < 10 && stats.money >= stats.speed[3]) {
-				stats.speed[0]++;
-				stats.speed[1] += stats.speed[2];
-				stats.speed[2] = stats.speed[2] * (stats.speed[0] + 1);
-				stats.money -= stats.speed[3];
-				stats.speed[3] = stats.speed[3] * (stats.speed[0] + 3);
-				scene.buttons.upgrade.speed.setText('$' + stats.speed[3]);
-			}
-		});
-	}
-
-	onUpdate(delta, ...args) {
-		this.states.update(delta, ...args);
-	}
-
-	onDraw(context, ...args) {
-		this.states.draw(context, ...args);
 	}
 };
 
@@ -870,8 +784,10 @@ Nemo.GameController = class extends You.Object {
 		this.gameState = new Nemo.GameState('game state', scene);
 		this.menuState = new Nemo.MenuState('menu state', scene);
 
-		this.states.addComponent(this.gameState);
-		this.states.addComponent(this.menuState);
+		this.states.addComponents(
+			this.gameState,
+			this.menuState
+		);
 
 		this.states.transit('game state');
 	}
