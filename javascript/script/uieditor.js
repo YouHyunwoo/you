@@ -1,7 +1,7 @@
 var UIEditor = {
 
 	name: "UI Editor",
-	desc: "UI Editor",
+	desc: "made by You",
 
 	asset: {
 		theme: {
