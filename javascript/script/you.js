@@ -336,11 +336,11 @@ You.Input = class {
 			up: new Set(),
 		};
 
-		this.key = () => ({
+		this.key = {
 			down: (keycode) => (keycode) ? this.#key.down.has(keycode) : this.#key.down.size > 0,
 			press: (keycode) => (keycode) ? this.#key.press.has(keycode) : this.#key.press.size > 0,
 			up: (keycode) => (keycode) ? this.#key.up.has(keycode) : this.#key.up.size > 0
-		});
+		};
 
 		this.#tmouse = {
 			down: null,
@@ -355,16 +355,18 @@ You.Input = class {
 			up: null,
 		};
 
-		document.getElementById('canvas').addEventListener('keydown', (e) => {
-			let keycode = e.keyCode;
+		window.addEventListener('keydown', (e) => {
+			let keycode = e.key;
 
 			if (!(this.#key.down.has(keycode) || this.#key.press.has(keycode))) {
 				this.#tkey.down.add(keycode);
 			}
+
+			console.log(e.key);
 		});
 
-		document.getElementById('canvas').addEventListener('keyup', (e) => {
-			this.#tkey.up.add(e.keyCode);
+		window.addEventListener('keyup', (e) => {
+			this.#tkey.up.add(e.key);
 		});
 
 		document.getElementById('canvas').addEventListener('pointerdown', (e) => {
@@ -418,6 +420,10 @@ You.Input = class {
 
 		this.mouse.up = this.#tmouse.up;
 		this.#tmouse.up = null;
+
+		// if (this.#key.press.size > 0) {
+		// 	debugger;
+		// }
 	}
 
 	static clear() {
@@ -1262,5 +1268,34 @@ You.Button = class extends You.Text {
 		if (this.contain(point)) {
 			this.handlers.forEach((h, i) => h(...this.args[i]));
 		}
+	}
+};
+
+You.Graphics = {};
+
+You.Graphics.Area = class {
+	constructor(position=null, size=null) {
+		this.position = position;
+		this.size = size;
+	}
+
+	setPosition(position) {
+		this.position = position || [0, 0];
+
+		return this;
+	}
+
+	setSize(size) {
+		this.size = size || [0, 0];
+
+		return this;
+	}
+
+	contains(point) {
+
+	}
+
+	intersects(area) {
+
 	}
 };
