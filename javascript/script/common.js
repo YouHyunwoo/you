@@ -49,8 +49,6 @@ class Progress {
 		this.current = value || begin;
 		this.rotatable = rotatable || { begin: true, end: true };
 		this.exceed = { begin: false, end: false };
-		// this.onempty = (who, delta) => { who.current += who.speed * delta + who.end - who.begin; return false; };
-		// this.onfull = (who, delta) => { who.current += who.speed * delta - who.end + who.begin; return false; };
 	}
 
 	update(delta) {
@@ -59,12 +57,10 @@ class Progress {
 		if (next < this.begin) {
 			this.exceed.begin = true;
 			this.current = this.rotatable.begin ? next + (this.end - this.begin) : this.begin;
-			// if (!this.onempty || this.onempty(this, delta)) { this.current = this.begin; }
 		}
 		else if (next > this.end) {
 			this.exceed.end = true;
 			this.current = this.rotatable.end ? next - (this.end - this.begin) : this.end;
-			// if (!this.onfull || this.onfull(this, delta)) { this.current = this.end; }
 		}
 		else {
 			this.exceed.begin = this.exceed.end = false;
@@ -86,6 +82,29 @@ class Progress {
 		return r;
 	}
 
+	setBegin(begin) {
+		this.begin = begin;
+
+		return this;
+	}
+
+	setEnd(end) {
+		this.end = end;
+
+		return this;
+	}
+
+	setCurrent(value) {
+		this.current = value;
+
+		return this;
+	}
+
+	setSpeed(speed) {
+		this.speed = speed;
+
+		return this;
+	}
 }
 
 const CW = Symbol();

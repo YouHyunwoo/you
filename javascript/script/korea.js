@@ -60,10 +60,12 @@ var Korea = {
 		game: {
 			in() {
 				// play selected character
+				// v. Image
 				// 1. 테스트 맵 생성
 				// 2. 테스트 캐릭터 생성
-				// 3. 캐릭터 움직임
-				// 4. 캐릭터 애니메이션
+				// 3. 캐릭터 움직임: keyboard, obj.transform
+				// v. Asset.Image, Asset.Image.Loader
+				// 4. 캐릭터 애니메이션: Frame, Animation
 				// 5. 테스트 몬스터 생성
 				// 6. 캐릭터 근접 공격, 주문
 				// 7. 몬스터 AI
@@ -78,7 +80,7 @@ var Korea = {
 				// 1. 테스트 맵 생성
 				this.map = new Korea.Map('map')
 							.setPosition([50, 50])
-							.setSize([200, 200])
+							.setSize([500, 500])
 							.setColor('rgba(255, 255, 255, 0.2)')
 							.addComponents(
 								new Korea.ObjectArrangement('object arrangement')
@@ -88,15 +90,24 @@ var Korea = {
 				this.character = new Korea.GameObject('character')
 									.setPosition([10, 10])
 									.setSize([50, 50])
+									.setAnchor([0.5, 0.5])
 									.addComponents(
 										new Korea.SpriteRenderer('sprite renderer')
 											.setSprite(
 												new Korea.Graphics.Sprite()
-												.setSheet(Korea.Graphics.Image.load('logo.png'))
+												.setSheet(Korea.Asset.Image.load('tree.png'))
+												.setAnchor([0.5, 0.5])
 											)
 									);
 
+
 				this.map.addComponents(this.character);
+
+				// 3. 캐릭터 움직임
+
+				// 4. 캐릭터 애니메이션
+
+				// 5. 
 			},
 
 			out() {
@@ -109,10 +120,25 @@ var Korea = {
 				if (You.Input.key.press('a')) {
 					this.character.transform.position[0] -= 100 * delta;
 				}
+
+				if (You.Input.key.press('d')) {
+					this.character.transform.position[0] += 100 * delta;
+				}
+
+				if (You.Input.key.press('s')) {
+					this.character.transform.position[1] += 100 * delta;
+				}
+
+				if (You.Input.key.press('w')) {
+					this.character.transform.position[1] -= 100 * delta;
+				}
 			},
 
 			draw(context) {
 				this.map.draw(context);
+
+				context.fillStyle = `rgba(255, 255, 255, ${this.light})`;
+				context.fillRect(0, 0, You.canvas.width, You.canvas.height);
 			},
 		},
 	},
@@ -132,7 +158,7 @@ Korea.Map = class extends You.Panel {
 		if (this.background) {
 			context.save();
 
-			this.background.draw(context, ...this.position, ...this.size);
+			this.background.draw(context, 0, 0, ...this.size);
 
 			context.restore();
 		}
@@ -167,6 +193,19 @@ Korea.GameObject = class extends You.Object {
 			position: [0, 0],
 			size: [0, 0],
 		};
+
+		this.anchor = [0, 0];
+	}
+
+	draw(context, ...args) {
+		context.save();
+
+		context.translate(...this.transform.position);
+
+		this.onDraw(context, ...args);
+		this.components.forEach((c) => c.draw(context, ...args));
+
+		context.restore();
 	}
 
 	setPosition(position) {
@@ -177,6 +216,12 @@ Korea.GameObject = class extends You.Object {
 
 	setSize(size) {
 		this.transform.size = size;
+
+		return this;
+	}
+
+	setAnchor(anchor) {
+		this.anchor = anchor;
 
 		return this;
 	}
@@ -191,8 +236,11 @@ Korea.SpriteRenderer = class extends You.Object {
 
 	onDraw(context) {
 		if (this.sprite) {
-			this.sprite.draw(context, 0, 0);
+			this.sprite.draw(context, this.parent.transform.size[0] * this.parent.anchor[0], this.parent.transform.size[1] * this.parent.anchor[1]);
 		}
+
+		context.fillStyle = 'rgba(255, 0, 0, 0.5)';
+		context.fillRect(0, 0, ...this.parent.transform.size);
 	}
 
 	setSprite(sprite) {
@@ -207,8 +255,20 @@ Korea.Graphics.Image = class {
 
 	#loaded = false;
 
-	constructor() {
-		this.raw = null;
+	constructor(file) {
+		this.file = file;
+
+		this.raw = new Image();
+
+		this.raw.onload = () => {
+			this.#loaded = true;
+		}
+
+		this.raw.onerror = () => {
+			this.#loaded = null;
+		}
+
+		this.raw.src = 'image/' + file;
 	}
 
 	draw(context, ...args) {
@@ -228,29 +288,70 @@ Korea.Graphics.Image = class {
 	get height() {
 		return this.#loaded ? this.raw.naturalHeight : null;
 	}
+};
 
-	setImage(image) {
-		this.raw = image || null;
+Korea.Asset = {};
+
+Korea.Asset.Image = class {
+	
+	static #data = new Map();
+	static #refCount = new Map();
+
+	static load(file) {
+		if (this.#data.has(file)) {
+			this.#refCount.set(file, this.#refCount.get(file) + 1);
+
+			return this.#data.get(file);
+		}
+		else {
+			let image = new Korea.Graphics.Image(file);
+
+			if (image.loaded != null) {
+				this.#data.set(file, image);
+				this.#refCount.set(file, 1);
+			}
+
+			return image;
+		}
+	}
+
+	static unload(file) {
+		if (this.#data.has(file)) {
+			this.#refCount.set(file, this.#refCount.get(file) - 1);
+
+			if (this.#refCount.get(file) == 0) {
+				this.#refCount.delete(file);
+
+				this.#data.delete(file);
+			}
+		}
+	}
+};
+
+Korea.Asset.Image.Loader = class {
+	
+	#images = [];
+
+	load(...args) {
+		args.forEach((e) => this.#images.push(new Korea.Asset.Image.load(e)));
 
 		return this;
 	}
 
-	static load(file) {
-		let image = new this();
+	unload() {
+		this.#images.forEach((e) => Korea.Asset.Image.unload(e.file));
 
-		let raw = new Image();
+		return this;
+	}
 
-		raw.onload = () => {
-			image.#loaded = true;
-		}
+	get rate() {
+		return this.#images.filter((e) => e.loaded).length / this.#images.length;
+	}
 
-		raw.src = 'image/' + file;
-
-		return image.setImage(raw);
+	get loaded() {
+		return this.#images.every((e) => e.loaded);
 	}
 };
-
-// Korea.Asset.Image = class {};
 
 Korea.Graphics.Sprite = class {
 	constructor() {
@@ -260,28 +361,32 @@ Korea.Graphics.Sprite = class {
 		this.sy = 0;
 		this.swidth = null;
 		this.sheight = null;
+
+		this.anchor = [0, 0];
 	}
 
 	out() {
 		this.sheet = null;
 	}
 
-	draw(context, ...args) {
-		if (this.sheet && this.sheet.loaded) {
-			if (args.length == 2) {
-				let [w, h] = [this.swidth || this.sheet.width, this.sheight || this.sheet.height];
-				// console.log([this.sx, this.sy, w, h, ...args, w, h]);
-				this.sheet.draw(context, this.sx, this.sy, w, h, ...args, w, h);
-			}
-			else if (args.length == 4) {
-				let [w, h] = [this.swidth || this.sheet.width, this.sheight || this.sheet.height];
-
-				this.sheet.draw(context, this.sx, this.sy, w, h, ...args);
-			}
-			else {
-				this.sheet.draw(context, ...args);
-			}
+	draw(context, x, y) {
+		if (this.swidth == 0 || this.sheight == 0) {
+			return;
 		}
+
+		if (this.sheet && this.sheet.loaded) {
+			let [w, h] = [this.swidth || this.sheet.width, this.sheight || this.sheet.height];
+
+			this.sheet.draw(context, this.sx, this.sy, w, h, x - w * this.anchor[0], y - h * this.anchor[1], w, h);
+		}
+	}
+
+	get width() {
+		return this.swidth || (this.swidth == 0) ? 0 : this.sheet.width;
+	}
+
+	get height() {
+		return this.sheight || (this.sheight == 0) ? 0 : this.sheet.height;
 	}
 
 	setSheet(sheet) {
@@ -300,50 +405,101 @@ Korea.Graphics.Sprite = class {
 
 		return this;
 	}
+
+	setAnchor(anchor) {
+		this.anchor = anchor;
+
+		return this;
+	}
 };
 
-Korea.Graphics.Animation = class {
+Korea.Graphics.Frame = class {
+	constructor(animation) {
+		this.#animation = animation;
 
-	#apply = null;
-	#interpolator = null;
-
-	#progress = null; // start:0, end:1, speed:1, repeat:$repeat, limit:!$repeat
-	#on = false;
-	
-
-	constructor(object) {
-		// all property -> set get
-		// set: changed
-	}
-
-	play() {
-		this.#on = true;
-	}
-
-	pause() {
-		this.#on = false;
-	}
-
-	stop() {
-		this.#on = false;
-		this.#progress.current = this.#progress.start;
+		this.sprite = null;
+		this.action = null;
+		this.duration = 0;
 	}
 
 	update(delta) {
-		if (this.#apply) {
-			this.#interpolator.update(delta);
-			this.#apply(this.#interpolator.value);
+		this.action(delta);
+	}
+
+	draw(context) {
+		this.sprite.draw(context, 0, 0);
+	}
+
+	setSprite(sprite) {
+		this.sprite = sprite;
+
+		return this;
+	}
+
+	setAction(action) {
+		this.action = action;
+
+		return this;
+	}
+
+	setDuration(duration) {
+		this.duration = duration;
+
+		return this;
+	}
+};
+
+// Korea.Graphics.Animator = class extends You.Object {
+
+// 	#animations = null;
+
+// 	update(delta) {
+// 		if (this.#animations) {
+// 			this.#animations.forEach((e) => e.update(delta);
+// 		}
+// 	}
+// }
+
+Korea.Graphics.Animation = class extends You.Object {
+
+	#playing = false;
+
+	#progress = new Progress(0, 0, 1, 0, { begin: true, end: true });
+	#frames = [];
+
+	update(delta) {
+		this.#progress.update(delta);
+
+		let current = this.#progress.current;
+
+		for (let [time, frame] of this.#frames) {
+			if (time <= current && current < time + frame.duration) {
+				frame.update(delta);
+			}
 		}
 	}
 
-	setApply(apply) {
-		this.#apply = apply || null;
+	addFrame(time, frame) {
+		this.#frames.push([time, frame]);
+
+		let last = time + frame.duration;
+
+		if (this.#progress.end < last) {
+			this.#progress.end = last;
+		}
 	}
 
-	setInterpolator(animator) {
-		this.animator = animator || null;
+	play() {
+		this.#playing = true;
+	}
 
-		return this;
+	pause() {
+		this.#playing = false;
+	}
+
+	stop() {
+		this.#playing = false;
+		this.#progress.current = this.#progress.start;
 	}
 
 	setSpeed(speed) {
@@ -353,18 +509,16 @@ Korea.Graphics.Animation = class {
 	}
 };
 
-Korea.Graphics.IInterpolator = class {
+Korea.Graphics.Interpolator = class {
 	constructor() {
 		this.value = 0;
 	}
 
-	update(delta) {
-		this.value = 0;
-	}
+	update(delta) {}
 };
 
-// Korea.Graphics.Interpolator.Linear = class extends Korea.Graphics.IInterpolator {
-// 	update(delta) {
-// 		this.value += delta;
-// 	}
-// };
+Korea.Graphics.Interpolator.Linear = class extends Korea.Graphics.Interpolator {
+	update(delta) {
+		this.value += delta;
+	}
+};

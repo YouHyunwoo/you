@@ -240,8 +240,13 @@ var You = {
 		this.input.update();
 		You.Input.update();
 
+		let delta = (time_now - this.time_last) / 1000;
+
+		// Animation
+		You.Animation.update(delta);
+
 		// Update
-		this.scene.update((time_now - this.time_last) / 1000);
+		this.scene.update(delta);
 
 		// Draw
 		this.buffer.save();
@@ -308,6 +313,80 @@ var You = {
 
 		window.removeEventListener('resize', this.resize_handler);
 	},
+};
+
+You.Animation = class {
+	static #animations = [];
+	
+	static update(delta) {
+		this.#animations.forEach((e) => e.update(delta));
+	}
+
+	static apply(object, property, time, interpolator) {
+		let value = object[property];
+
+		if (isNaN(value) && !value instanceof Array) {
+			return false;
+		}
+
+		let animation = {
+			progress: 1,
+			current: value,
+			start: value,
+			end: value,
+			time: time,
+			update(delta) {
+				if (this.progress >= 1) {
+					return;
+				}
+
+				let next = this.progress + delta / this.time;
+
+				if (next >= 1) {
+					this.progress = 1;
+					this.current = this.end;
+				}
+				else {
+					this.progress = next;
+					this.current = this.current instanceof Array
+									? this.end.subv(this.start).muls(next).addv(this.start)
+									: (this.end - this.start) * next + this.start;
+				}
+			},
+		};
+
+		this.#animations.push(animation);
+
+		let thisAnimations = this.#animations
+
+		Object.defineProperty(object, property, {
+			get () {
+				return animation.current;
+			},
+			set (value) {
+				if (value == 'cancel') {
+					let index = thisAnimations.indexOf(animation);
+
+					if (index >= 0) {
+						thisAnimations.splice(index, 1);
+					}
+
+					Object.defineProperty(object, property, {
+						enumerable: true,
+						configurable: true,
+						writable: true,
+						value: animation.current,
+					});
+					
+					return;
+				}
+
+				animation.progress = 0;
+				animation.start = animation.current;
+				animation.end = value;
+			}
+		});
+	}
 };
 
 You.Input = class {
@@ -788,15 +867,18 @@ You.Area = class extends You.Object {
 		}
 	}
 
-	onDraw(context) {
-		if (this.color) {
-			context.save();
+	draw(context, ...args) {
+		context.save();
 
+		if (this.color) {
 			context.fillStyle = this.color;
 			context.fillRect(...this.position, ...this.size);
-
-			context.restore();
 		}
+
+		this.onDraw(context, ...args);
+		this.components.forEach((c) => c.draw(context, ...args));
+
+		context.restore();
 	}
 
 	intersect(other) {
@@ -861,6 +943,11 @@ You.Panel = class extends You.Area {
 			context.beginPath();
 			context.rect(0, 0, ...this.size);
 			context.clip();
+		}
+
+		if (this.color) {
+			context.fillStyle = this.color;
+			context.fillRect(0, 0, ...this.size);
 		}
 
 		this.onDraw(context, ...args);
