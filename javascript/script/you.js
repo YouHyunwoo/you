@@ -566,45 +566,21 @@ You.Object = class {
 		return null;
 	}
 
-	addComponent(component) {
-		if (!component) {
-			throw 'argumentError';
-		}
-
-		component.parent = this;
-		this.components.push(component);
-		component.onAdded(this);
-
-		if (component.name) {
-			if (this[component.name] == undefined) {
-				this[component.name] = component;
-			}
-		}
-
-		return this;
-	}
-
 	addComponents(...components) {
-		components.forEach((c) => {
-			this.addComponent(c);
-		});
+		for (let component of components) {
+			if (!component) {
+				console.log(components)
+				throw 'argumentError';
+			}
 
-		return this;
-	}
+			component.parent = this;
+			this.components.push(component);
+			component.onAdded(this);
 
-	removeComponent(component) {
-		if (!component) {
-			throw 'argumentError';
-		}
-
-		let idx = this.components.indexOf(component);
-		if (idx > -1) {
-			let component = this.components.splice(idx, 1);
-			component.parent = null;
-			component.onRemoved(this);
-
-			if (component.name && this[component.name] == component) {
-				delete this[component.name];
+			if (component.name) {
+				if (this[component.name] == undefined) {
+					this[component.name] = component;
+				}
 			}
 		}
 
@@ -612,14 +588,50 @@ You.Object = class {
 	}
 
 	removeComponents(...components) {
-		components.forEach((c) => {
-			this.removeComponents(c);
-		});
+		for (let component of components) {
+			if (!component) {
+				throw 'argumentError';
+			}
+
+			let idx = this.components.indexOf(component);
+
+			if (idx > -1) {
+				let component = this.components.splice(idx, 1)[0];
+
+				component.parent = null;
+				component.onRemoved(this);
+
+				if (component.name && this[component.name] == component) {
+					delete this[component.name];
+				}
+			}
+		}
 
 		return this;
 	}
 
 	findComponent(expression) {
+		let [name, ...tags] = expression.split('#');
+
+		loopComponent:
+		for (let c of this.components) {
+			if (name && c.name != null && c.name != name) {
+				continue;
+			}
+
+			for (let tag of tags) {
+				if (!c.tags.includes(tag)) {
+					continue loopComponent;
+				}
+			}
+
+			return c;
+		}
+
+		return null;
+	}
+
+	findComponents(expression) {
 		let [name, ...tags] = expression.split('#');
 		let found = [];
 
@@ -641,21 +653,21 @@ You.Object = class {
 		return found;
 	}
 
-	findComponents(expression) {
-		return this.findComponent(expression);
-	}
-
-	addTag(value) {
-		this.tags.push(value);
+	addTags(...values) {
+		for (let value of values) {
+			this.tags.push(value);
+		}
 
 		return this;
 	}
 
-	removeTag(value) {
-		let index = this.tags.indexOf(value);
+	removeTags(...values) {
+		for (let value of values) {
+			let index = this.tags.indexOf(value);
 
-		if (index > -1) {
-			this.tags.splice(index, 1);
+			if (index > -1) {
+				this.tags.splice(index, 1);
+			}
 		}
 
 		return this;
@@ -708,11 +720,21 @@ You.State.Context = class extends You.Object {
 		this.state = null;
 	}
 
+	addComponents(...components) {
+		super.addComponents(...components);
+
+		if (this.state == null) {
+			this.transit(components[0].name);
+		}
+
+		return this;
+	}
+
 	update(delta, ...args) {
 		this.onUpdate(delta, ...args);
 
 		if (this.state) {
-			this.state.onUpdate(delta, ...args);
+			this.state.update(delta, ...args);
 		}
 	}
 
@@ -720,7 +742,7 @@ You.State.Context = class extends You.Object {
 		this.onDraw(context, ...args);
 
 		if (this.state) {
-			this.state.onDraw(context, ...args);
+			this.state.draw(context, ...args);
 		}
 	}
 
@@ -744,7 +766,7 @@ You.State.Context = class extends You.Object {
 			let state = this.findComponent(stateName);
 
 			if (state) {
-				this.state = state[0];
+				this.state = state;
 				console.info('state changed: %s', this.state.name);
 
 				if (enterArgs) {
@@ -780,7 +802,9 @@ You.Area = class extends You.Object {
 			[event.x, event.y] = [event.x, event.y].subv(this.position);
 
 			for (let c = this.components.length-1; c >= 0; c--) {
-				this.components[c].mouseDown(event);
+				if (this.components[c].mouseDown) {
+					this.components[c].mouseDown(event);
+				}
 
 				if (event.stop) {
 					break;
@@ -802,7 +826,9 @@ You.Area = class extends You.Object {
 			[event.x, event.y] = [event.x, event.y].subv(this.position);
 
 			for (let c = this.components.length-1; c >= 0; c--) {
-				this.components[c].mouseMove(event);
+				if (this.components[c].mouseMove) {
+					this.components[c].mouseMove(event);
+				}
 
 				if (event.stop) {
 					break;
@@ -824,7 +850,9 @@ You.Area = class extends You.Object {
 			[event.x, event.y] = [event.x, event.y].subv(this.position);
 
 			for (let c = this.components.length-1; c >= 0; c--) {
-				this.components[c].mouseUp(event);
+				if (this.components[c].mouseUp) {
+					this.components[c].mouseUp(event);
+				}
 
 				if (event.stop) {
 					break;

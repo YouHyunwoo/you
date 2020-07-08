@@ -123,7 +123,7 @@ var Nemo = {
 						You.scene.transit(Nemo.scene.main, i);
 					});
 
-					this.panel.addComponent(button);
+					this.panel.addComponents(button);
 				}
 
 				this.title = new You.Text('title')
@@ -288,11 +288,13 @@ var Nemo = {
 
 				this.character = new Nemo.NemoObject('player');
 				this.character.transform.position = [ (You.canvas.width - 10) / 2, (You.canvas.height - 10) / 2 ];
-				this.character.addComponent(new Nemo.Rectangle('sr', size, size, color));
-				this.character.addComponent(new Nemo.BoxCollider('bc', size, size));
+				this.character.addComponents(
+					new Nemo.Rectangle('sr', size, size, color),
+					new Nemo.BoxCollider('bc', size, size)
+				);
 				this.character.tags = ['player'];
 				this.character.speed = 100;
-				this.character.hit = (...args) => this.character.findComponent('bc')[0].hit(...args);
+				this.character.hit = (...args) => this.character.findComponent('bc').hit(...args);
 
 				this.objects = [];
 				this.objectCount = 10;
@@ -463,7 +465,7 @@ Nemo.BoxCollider = class extends Nemo.Collider {
 			return sx < x + this.width && x < sx + collider.width && sy < y + this.height && y < sy + collider.height;
 		}
 		else if (collider instanceof You.Object) {
-			return this.hit(collider.findComponent('bc')[0]);
+			return this.hit(collider.findComponent('bc'));
 		}
 	}
 };
@@ -475,7 +477,7 @@ Nemo.NemoObject = class extends Nemo.GameObject {
 
 	growUp(amount) {
 		let sr = this.sr;
-		let bc = this.findComponent('bc')[0];
+		let bc = this.findComponent('bc');
 		let size = Math.sqrt(sr.width ** 2 + amount);
 		sr.width = sr.height = size;
 		bc.width = bc.height = size;
@@ -483,7 +485,7 @@ Nemo.NemoObject = class extends Nemo.GameObject {
 	}
 
 	getArea() {
-		let sr = this.findComponent('sr')[0];
+		let sr = this.findComponent('sr');
 		return sr.width * sr.height;
 	}
 };
@@ -500,7 +502,7 @@ Nemo.StatsState = class extends You.State {
 
 		this.model = new Nemo.GameObject('player');
 		this.model.transform.position = [ -size / 2, -size / 2 ];
-		this.model.addComponent(new Nemo.Rectangle('sr', 10, 10, color));
+		this.model.addComponents(new Nemo.Rectangle('sr', 10, 10, color));
 		this.model.tags = ['model'];
 		this.model.speed = 100;
 	}
@@ -627,7 +629,7 @@ Nemo.GameState = class extends You.State {
 		let reset = false;
 
 		for (let o of scene.objects) {
-			if (scene.character.findComponent('bc')[0].hit(o)) {
+			if (scene.character.findComponent('bc').hit(o)) {
 				if (scene.character.getArea() > o.getArea()) {
 					if (o.tags.includes('normal')) {
 
@@ -756,18 +758,20 @@ Nemo.ObjectGenerator = class extends You.Object {
 
 			let obj = new Nemo.NemoObject('object');
 			obj.transform.position = [x, y];
-			obj.addComponent(new Nemo.Rectangle('sr', size, size,
+			obj.addComponents(new Nemo.Rectangle('sr', size, size,
 				type == 0 ? 'rgb(255, ' + Math.floor(size / You.canvas.width * 1000) + ', 0)' :
 				type == 1 ? '#55f' :
 				'#5f5'
 			));
-			obj.addComponent(new Nemo.Moveable('m', [ direction_x, 0 ], random(20, 200)));
-			obj.addComponent(new Nemo.BoxCollider('bc', size, size));
-			// obj.addComponent(new Nemo.NemoObject('n'));
+			obj.addComponents(
+				new Nemo.Moveable('m', [ direction_x, 0 ], random(20, 200)),
+				new Nemo.BoxCollider('bc', size, size)
+			);
+			// obj.addComponents(new Nemo.NemoObject('n'));
 			obj.tags.push(type == 0 ? 'normal' : type == 1 ? 'speedUp' : 'reset');
-			obj.hit = (...args) => obj.findComponent('bc')[0].hit(...args);
-			// obj.growUp = () => obj.findComponent('n')[0].growUp();
-			// obj.getArea = () => obj.findComponent('n')[0].getArea();
+			obj.hit = (...args) => obj.findComponent('bc').hit(...args);
+			// obj.growUp = () => obj.findComponent('n').growUp();
+			// obj.getArea = () => obj.findComponent('n').getArea();
 			scene.objects.push(obj);
 		}
 	}
