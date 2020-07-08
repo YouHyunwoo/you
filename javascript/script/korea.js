@@ -3,6 +3,8 @@ var Korea = {
 	name: "Korea",
 	desc: "made by You",
 
+	debug: true,
+
 	asset: {
 		theme: {
 			red: {
@@ -66,9 +68,9 @@ var Korea = {
 				// 3. 캐릭터 움직임: keyboard, obj.transform
 				// v. Asset.Image, Asset.Image.Loader
 				// 4. 캐릭터 애니메이션: Frame, Animation
-				// 5. 테스트 몬스터 생성
-				// 6. 캐릭터 근접 공격, 주문
-				// 7. 몬스터 AI
+				// 5. 테스트 몬스터 생성: Stats
+				// 6. 캐릭터 근접 공격, 주문: Animator
+				// 7. 몬스터 AI: AI
 				// 8. 맵 저장
 				// 9. 캐릭터 저장
 				// 10. 오브젝트 저장
@@ -87,27 +89,100 @@ var Korea = {
 							);
 
 				// 2. 테스트 캐릭터 생성
-				this.character = new Korea.GameObject('character')
-									.setPosition([10, 10])
-									.setSize([50, 50])
-									.setAnchor([0.5, 0.5])
-									.addComponents(
-										new Korea.SpriteRenderer('sprite renderer')
-											.setSprite(
-												new Korea.Graphics.Sprite()
-												.setSheet(Korea.Asset.Image.load('tree.png'))
-												.setAnchor([0.5, 0.5])
-											)
-									);
-
-
-				this.map.addComponents(this.character);
 
 				// 3. 캐릭터 움직임
 
 				// 4. 캐릭터 애니메이션
 
-				// 5. 
+				let sprites = {
+					tree: new Korea.Graphics.Sprite()
+							.setSheet(Korea.Asset.Image.load('tree.png'))
+							.setAnchor([0.5, 0.5]),
+					logo: new Korea.Graphics.Sprite()
+							.setSheet(Korea.Asset.Image.load('logo.png'))
+							.setAnchor([0.5, 0.5]),
+					stone: new Korea.Graphics.Sprite()
+							.setSheet(Korea.Asset.Image.load('stone.png'))
+							.setAnchor([0.5, 0.5]),
+				};
+
+				this.character = new Korea.GameObject('character')
+									.addTags('character')
+									.setPosition([300, 300])
+									.setSize([50, 50])
+									.setAnchor([0.5, 0.5])
+									.addComponents(
+										new Korea.SpriteRenderer('sprite renderer')
+											.setSprite(
+												sprites.tree
+											),
+										new You.State.Context('animator')
+											.addComponents(
+												new Korea.Graphics.Animation('idle')
+													.addFrames(
+														new Korea.Graphics.Frame()
+															.setTime(0)
+															.setDuration(1)
+															.setAction(function (delta, animator, animation) {
+																this['sprite renderer'].sprite = sprites.logo;
+															})
+													),
+												new Korea.Graphics.Animation('attack')
+													.addFrames(
+														new Korea.Graphics.Frame()
+															.setTime(0)
+															.setDuration(0.5)
+															.setAction(function (delta, animator, animation) {
+																this['sprite renderer'].sprite = sprites.tree;
+															}),
+														new Korea.Graphics.Frame()
+															.setTime(0.5)
+															.setDuration(0.1)
+															.setAction(function (delta, animator, animation) {
+																animation.play(0);
+																animator.transit('idle');
+															}),
+													)
+											),
+										new Korea.Stats('stats')
+											.setStats('hp', 10)
+											.setStats('maxhp', 10)
+											.setStats('mp', 2)
+											.setStats('ap', 1)
+											.setStats('dp', 0),
+										new Korea.Attack('attack'),
+										new Korea.HPRepresenter('hp representer'),
+										new Korea.Moveable('moveable').setSpeed(150)
+									);
+
+				this.map.addComponents(this.character);
+
+				// 5. 테스트 몬스터 생성
+
+				this.monster = new Korea.GameObject('monster')
+								.addTags('monster', 'character')
+								.setPosition([0, 0])
+								.setSize([50, 50])
+								.setAnchor([0.5, 0.5])
+								.addComponents(
+									new Korea.SpriteRenderer('sprite renderer')
+										.setSprite(
+											sprites.stone
+										),
+									new Korea.Stats('stats')
+										.setStats('hp', 3)
+										.setStats('maxhp', 3)
+										.setStats('mp', 0)
+										.setStats('ap', 1)
+										.setStats('dp', 0),
+									new Korea.HPRepresenter('hp representer'),
+									new Korea.Moveable('moveable').setSpeed(100),
+									new Korea.AI('ai')
+										.setSight(100)
+										.setAggressivePoint(0.01)
+								);
+
+				this.map.addComponents(this.monster);
 			},
 
 			out() {
@@ -115,30 +190,27 @@ var Korea = {
 			},
 
 			update(delta) {
-				// this.map.update(delta);
+				this.map.update(delta);
 
 				if (You.Input.key.press('a')) {
-					this.character.transform.position[0] -= 100 * delta;
+					this.character.transform.position[0] -= this.character.moveable.speed * delta;
 				}
 
 				if (You.Input.key.press('d')) {
-					this.character.transform.position[0] += 100 * delta;
+					this.character.transform.position[0] += this.character.moveable.speed * delta;
 				}
 
 				if (You.Input.key.press('s')) {
-					this.character.transform.position[1] += 100 * delta;
+					this.character.transform.position[1] += this.character.moveable.speed * delta;
 				}
 
 				if (You.Input.key.press('w')) {
-					this.character.transform.position[1] -= 100 * delta;
+					this.character.transform.position[1] -= this.character.moveable.speed * delta;
 				}
 			},
 
 			draw(context) {
 				this.map.draw(context);
-
-				context.fillStyle = `rgba(255, 255, 255, ${this.light})`;
-				context.fillRect(0, 0, You.canvas.width, You.canvas.height);
 			},
 		},
 	},
@@ -151,7 +223,6 @@ Korea.Map = class extends You.Panel {
 		this.background = null;
 	}
 
-	onUpdate(delta) {}
 	onDraw(context) {
 		super.onDraw(context);
 
@@ -175,9 +246,9 @@ Korea.ObjectArrangement = class extends You.Object {
 	onUpdate(delta) {
 		let map = this.parent;
 
-		this.componenets.sort((a, b) => {
+		map.components.sort((a, b) => {
 			if (a instanceof Korea.GameObject && b instanceof Korea.GameObject) {
-				return a.transform.position[1] + a.transform.size[1] / 2 - b.transform.position[1] + b.transform.size[1] / 2;
+				return a.transform.position[1] + a.transform.size[1] / 2 - b.transform.position[1] - b.transform.size[1] / 2;
 			}
 
 			return 0;
@@ -186,6 +257,9 @@ Korea.ObjectArrangement = class extends You.Object {
 };
 
 Korea.GameObject = class extends You.Object {
+
+	#toBeReleased = false;
+
 	constructor(name) {
 		super(name);
 
@@ -195,6 +269,16 @@ Korea.GameObject = class extends You.Object {
 		};
 
 		this.anchor = [0, 0];
+	}
+
+	deleteObject() {
+		this.#toBeReleased = true;
+	}
+
+	onUpdate(delta) {
+		if (this.#toBeReleased && this.parent) {
+			this.parent.removeComponents(this);
+		}
 	}
 
 	draw(context, ...args) {
@@ -227,6 +311,45 @@ Korea.GameObject = class extends You.Object {
 	}
 };
 
+Korea.Moveable = class extends You.Object {
+	constructor(name) {
+		super(name);
+
+		this.destination = null;
+
+		this.speed = 0;
+	}
+
+	onUpdate(delta) {
+		let object = this.parent;
+
+		if (this.destination != null) {
+			let pos = object.transform.position;
+			let diff = this.destination.subv(pos);
+			let sq = diff.dotv(diff);
+
+			if ((this.speed * delta) ** 2 < sq) {
+				object.transform.position = pos.addv(diff.muls(this.speed * delta).divs(Math.sqrt(sq)));
+			}
+			else {
+				object.transform.position = this.destination;
+			}
+		}
+	}
+
+	setDestination(destination) {
+		this.destination = destination;
+
+		return this;
+	}
+
+	setSpeed(speed) {
+		this.speed = speed;
+
+		return this;
+	}
+};
+
 Korea.SpriteRenderer = class extends You.Object {
 	constructor(name) {
 		super(name);
@@ -236,11 +359,22 @@ Korea.SpriteRenderer = class extends You.Object {
 
 	onDraw(context) {
 		if (this.sprite) {
-			this.sprite.draw(context, this.parent.transform.size[0] * this.parent.anchor[0], this.parent.transform.size[1] * this.parent.anchor[1]);
+			this.sprite.draw(context, 0, 0);
 		}
 
-		context.fillStyle = 'rgba(255, 0, 0, 0.5)';
-		context.fillRect(0, 0, ...this.parent.transform.size);
+		if (Korea.debug) {
+			context.fillStyle = 'rgba(255, 0, 0, 0.2)';
+			context.fillRect(...this.parent.transform.size.mulv(this.parent.anchor).muls(-1), ...this.parent.transform.size);
+
+			context.strokeStyle = 'white';
+
+			context.beginPath();
+			context.moveTo(-5, 0);
+			context.lineTo(5, 0);
+			context.moveTo(0, -5);
+			context.lineTo(0, 5);
+			context.stroke();
+		}
 	}
 
 	setSprite(sprite) {
@@ -250,48 +384,222 @@ Korea.SpriteRenderer = class extends You.Object {
 	}
 };
 
-Korea.Graphics = {};
-Korea.Graphics.Image = class {
+Korea.Stats = class extends You.Object {
+	constructor(name) {
+		super(name);
 
-	#loaded = false;
+		this.hp = 0;
+		this.maxhp = 0;
+		this.mp = 0;
+		this.ap = 0;
+		this.dp = 0;
 
-	constructor(file) {
-		this.file = file;
+		this.attackRange = 60;
+	}
 
-		this.raw = new Image();
+	setStats(name, value) {
+		this[name] = value;
 
-		this.raw.onload = () => {
-			this.#loaded = true;
+		return this;
+	}
+};
+
+Korea.Attack = class extends You.Object {
+	constructor(name) {
+		super(name);
+
+		this.selectedObject = null;
+	}
+
+	onUpdate(delta) {
+		let mouse = You.Input.mouse;
+
+		if (mouse.down) {
+			if (this.parent.animator.state.name != 'attack') {
+				this.parent.animator.transit('attack');
+			}
+
+			if (this.selectedObject) {
+				this.selectedObject.stats.hp -= this.parent.stats.ap - this.selectedObject.stats.dp;
+
+				if (this.selectedObject.stats.hp <= 0) {
+					this.selectedObject.deleteObject();
+				}
+			}
 		}
 
-		this.raw.onerror = () => {
-			this.#loaded = null;
+		if (mouse.move) {
+			let map = this.parent.parent;
+
+			for (let monster of map.findComponents('#monster')) {
+				let monpos = monster.transform.position;
+				let sq = monpos.subv(this.parent.transform.position);
+
+				if (Math.sqrt(sq.dotv(sq)) < 100) {
+					this.selectedObject = monster;
+				}
+			}
+		}
+	}
+}
+
+Korea.HPRepresenter = class extends You.Object {
+	onDraw(context) {
+		let object = this.parent;
+
+		context.save();
+
+		context.fillStyle = 'rgba(255, 0, 0, 0.7)';
+		context.fillRect(-object.transform.size[0] / 2, -object.transform.size[1] / 2 - 15, object.stats.hp / object.stats.maxhp * object.transform.size[0], 10);
+
+		context.strokeStyle = 'black';
+		context.strokeRect(-object.transform.size[0] / 2, -object.transform.size[1] / 2 - 15, object.transform.size[0], 10);
+
+		context.restore();
+	}
+}
+
+Korea.AI = class extends You.Object {
+	constructor(name) {
+		super(name);
+
+		this.state = 'idle';
+
+		this.sight = 200;
+
+		this.aggressivePoint = -0.01;
+		this.attackProgress = new Progress(0, 1, 1, 1, { begin: false, end: false });
+
+		this.target = null;
+
+		this.aggressiveImage = Korea.Asset.Image.load('youtube.png');
+	}
+
+	onUpdate(delta) {
+		let map = this.parent.parent;
+
+		if (this.state == 'idle') {
+			for (let object of map.findComponents('#character')) {
+				if (object == this.parent) {
+					continue;
+				}
+
+				let diff = object.transform.position.subv(this.parent.transform.position);
+
+				if (diff.dotv(diff) <= this.sight ** 2 && this.target == null) {
+					let prob = Math.random();
+
+					if (Math.abs(this.aggressivePoint) > prob) {
+						this.target = object;
+						this.parent.moveable.destination = object.transform.position;
+
+						this.state = this.aggressivePoint < 0 ? 'aggressive' : 'follow';
+
+						console.log('idle ->' + this.state);
+					}
+				}
+			}
+
+			let prob = Math.random();
+
+			if (prob < 0.01) {
+				console.log('idle -> explore')
+				this.parent.moveable.destination = [Math.random() * map.size[0], Math.random() * map.size[1]];
+				this.state = 'explore';
+			}
+		}
+		else if (this.state == 'explore') {
+			let prob = Math.random();
+
+			if (prob < 0.01) {
+				console.log('exp -> idle')
+				this.parent.moveable.destination = null;
+				this.state = 'idle';
+			}
+		}
+		else if (this.state == 'aggressive') {
+			let diff = this.target.transform.position.subv(this.parent.transform.position);
+			let sq = diff.dotv(diff);
+
+			this.attackProgress.update(delta);
+
+			if (this.sight ** 2 < sq) {
+				this.target = null;
+				this.attackProgress.current = 0;
+				this.state = 'idle'
+			}
+			else if (this.parent.stats.attackRange ** 2 >= sq) {
+				if (this.target.stats) {
+					if (this.attackProgress.isFull) {
+						console.log('attack!')
+						this.target.stats.hp -= this.parent.stats.ap - this.target.stats.dp;
+						this.attackProgress.current = 0;
+					}
+					if (Korea.debug) console.log(this.attackProgress.rate)
+				}
+
+				this.parent.moveable.destination = null;
+			}
+			else {
+				this.parent.moveable.destination = this.target.transform.position;
+			}
+		}
+		else if (this.state == 'follow') {
+			let diff = this.target.transform.position.subv(this.parent.transform.position);
+			let sq = diff.dotv(diff);
+
+			if (this.sight ** 2 < sq) {
+				console.log('follow -> idle')
+				this.target = null;
+				this.state = 'idle'
+			}
+			else if (this.parent.transform.size[0] ** 2 >= sq) {
+				this.parent.moveable.destination = null;
+			}
+			else {
+				this.parent.moveable.destination = this.target.transform.position;
+			}
+		}
+	}
+
+	onDraw(context) {
+		if (Korea.debug) {
+			context.save();
+
+			context.fillStyle = 'rgba(0, 0, 255, 0.2)';
+
+			context.beginPath();
+			context.arc(0, 0, this.sight, 0, 2 * Math.PI);
+			context.fill();
+
+			context.fillStyle = 'rgba(0, 255, 0, 0.2)';
+
+			context.beginPath();
+			context.arc(0, 0, this.parent.stats.attackRange, 0, 2 * Math.PI);
+			context.fill();
+
+			context.restore();
 		}
 
-		this.raw.src = 'image/' + file;
-	}
-
-	draw(context, ...args) {
-		if (this.raw && this.#loaded) {
-			context.drawImage(this.raw, ...args);
+		if (this.state == 'aggressive') {
+			context.drawImage(this.aggressiveImage.raw, -20, -this.parent.transform.size[1] / 2 - 40, 40, 20);
 		}
 	}
 
-	get loaded() {
-		return this.#loaded;
+	setSight(sight) {
+		this.sight = sight;
+
+		return this;
 	}
 
-	get width() {
-		return this.#loaded ? this.raw.naturalWidth : null;
-	}
+	setAggressivePoint(aggressivePoint) {
+		this.aggressivePoint = aggressivePoint;
 
-	get height() {
-		return this.#loaded ? this.raw.naturalHeight : null;
+		return this;
 	}
 };
 
 Korea.Asset = {};
-
 Korea.Asset.Image = class {
 	
 	static #data = new Map();
@@ -350,6 +658,46 @@ Korea.Asset.Image.Loader = class {
 
 	get loaded() {
 		return this.#images.every((e) => e.loaded);
+	}
+};
+
+Korea.Graphics = {};
+Korea.Graphics.Image = class {
+
+	#loaded = false;
+
+	constructor(file) {
+		this.file = file;
+
+		this.raw = new Image();
+
+		this.raw.onload = () => {
+			this.#loaded = true;
+		}
+
+		this.raw.onerror = () => {
+			this.#loaded = null;
+		}
+
+		this.raw.src = 'image/' + file;
+	}
+
+	draw(context, ...args) {
+		if (this.raw && this.#loaded) {
+			context.drawImage(this.raw, ...args);
+		}
+	}
+
+	get loaded() {
+		return this.#loaded;
+	}
+
+	get width() {
+		return this.#loaded ? this.raw.naturalWidth : null;
+	}
+
+	get height() {
+		return this.#loaded ? this.raw.naturalHeight : null;
 	}
 };
 
@@ -414,30 +762,27 @@ Korea.Graphics.Sprite = class {
 };
 
 Korea.Graphics.Frame = class {
-	constructor(animation) {
-		this.#animation = animation;
 
-		this.sprite = null;
-		this.action = null;
+	#action;
+
+	constructor() {
+		this.#action = null;
+		this.time = 0;
 		this.duration = 0;
 	}
 
-	update(delta) {
-		this.action(delta);
+	update(delta, animator, animation) {
+		this.#action.call(animator.parent instanceof Korea.GameObject ? animator.parent : null, delta, animator, animation)
 	}
 
-	draw(context) {
-		this.sprite.draw(context, 0, 0);
-	}
-
-	setSprite(sprite) {
-		this.sprite = sprite;
+	setAction(action) {
+		this.#action = action;
 
 		return this;
 	}
 
-	setAction(action) {
-		this.action = action;
+	setTime(time) {
+		this.time = time;
 
 		return this;
 	}
@@ -449,18 +794,7 @@ Korea.Graphics.Frame = class {
 	}
 };
 
-// Korea.Graphics.Animator = class extends You.Object {
-
-// 	#animations = null;
-
-// 	update(delta) {
-// 		if (this.#animations) {
-// 			this.#animations.forEach((e) => e.update(delta);
-// 		}
-// 	}
-// }
-
-Korea.Graphics.Animation = class extends You.Object {
+Korea.Graphics.Animation = class extends You.State {
 
 	#playing = false;
 
@@ -472,25 +806,33 @@ Korea.Graphics.Animation = class extends You.Object {
 
 		let current = this.#progress.current;
 
-		for (let [time, frame] of this.#frames) {
-			if (time <= current && current < time + frame.duration) {
-				frame.update(delta);
+		for (let frame of this.#frames) {
+			if (frame.time <= current && current < frame.time + frame.duration) {
+				frame.update(delta, this.parent, this);
 			}
 		}
 	}
 
-	addFrame(time, frame) {
-		this.#frames.push([time, frame]);
+	addFrames(...frames) {
+		for (let frame of frames) {
+			this.#frames.push(frame);
 
-		let last = time + frame.duration;
+			let last = frame.time + frame.duration;
 
-		if (this.#progress.end < last) {
-			this.#progress.end = last;
+			if (this.#progress.end < last) {
+				this.#progress.end = last;
+			}
 		}
+
+		return this;
 	}
 
-	play() {
+	play(progress=null) {
 		this.#playing = true;
+
+		if (progress != null) {
+			this.#progress.current = progress;
+		}
 	}
 
 	pause() {
@@ -499,26 +841,12 @@ Korea.Graphics.Animation = class extends You.Object {
 
 	stop() {
 		this.#playing = false;
-		this.#progress.current = this.#progress.start;
+		this.#progress.current = this.#progress.begin;
 	}
 
 	setSpeed(speed) {
 		this.progress.speed = speed || 1;
 
 		return this;
-	}
-};
-
-Korea.Graphics.Interpolator = class {
-	constructor() {
-		this.value = 0;
-	}
-
-	update(delta) {}
-};
-
-Korea.Graphics.Interpolator.Linear = class extends Korea.Graphics.Interpolator {
-	update(delta) {
-		this.value += delta;
 	}
 };
