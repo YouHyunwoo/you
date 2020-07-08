@@ -40,6 +40,26 @@ Array.prototype.subv = function (other) {
 	return result;
 };
 
+Array.prototype.mulv = function (other) {
+	let result = [];
+
+	for (let i = 0; i < this.length; i++) {
+		result.push(this[i] * other[i]);
+	}
+
+	return result;
+};
+
+Array.prototype.divv = function (other) {
+	let result = [];
+
+	for (let i = 0; i < this.length; i++) {
+		result.push(this[i] / other[i]);
+	}
+
+	return result;
+};
+
 Array.prototype.muls = function (other) {
 	let result = [];
 
