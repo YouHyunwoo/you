@@ -82,7 +82,7 @@ var Korea = {
 				// 1. 테스트 맵 생성
 				this.map = new Korea.Map('map')
 							.setPosition([50, 50])
-							.setSize([500, 500])
+							.setSize([1000, 1000])
 							.setColor('rgba(255, 255, 255, 0.2)')
 							.addComponents(
 								new Korea.ObjectArrangement('object arrangement')
@@ -178,7 +178,7 @@ var Korea = {
 									new Korea.HPRepresenter('hp representer'),
 									new Korea.Moveable('moveable').setSpeed(100),
 									new Korea.AI('ai')
-										.setSight(100)
+										.setSight(200)
 										.setAggressivePoint(-0.01)
 								);
 
@@ -714,6 +714,7 @@ Korea.Graphics.Sprite = class {
 		this.sheight = null;
 
 		this.anchor = [0, 0];
+		this.scale = [1, 1];
 	}
 
 	out() {
@@ -728,7 +729,7 @@ Korea.Graphics.Sprite = class {
 		if (this.sheet && this.sheet.loaded) {
 			let [w, h] = [this.swidth || this.sheet.width, this.sheight || this.sheet.height];
 
-			this.sheet.draw(context, this.sx, this.sy, w, h, x - w * this.anchor[0], y - h * this.anchor[1], w, h);
+			this.sheet.draw(context, this.sx, this.sy, w, h, x - w * this.anchor[0] * this.scale[0], y - h * this.anchor[1] * this.scale[1], w * this.scale[0], h * this.scale[1]);
 		}
 	}
 
@@ -759,6 +760,12 @@ Korea.Graphics.Sprite = class {
 
 	setAnchor(anchor) {
 		this.anchor = anchor;
+
+		return this;
+	}
+
+	setScale(scale) {
+		this.scale = scale;
 
 		return this;
 	}
