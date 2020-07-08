@@ -179,7 +179,7 @@ var Korea = {
 									new Korea.Moveable('moveable').setSpeed(100),
 									new Korea.AI('ai')
 										.setSight(100)
-										.setAggressivePoint(0.01)
+										.setAggressivePoint(-0.01)
 								);
 
 				this.map.addComponents(this.monster);
@@ -465,9 +465,9 @@ Korea.AI = class extends You.Object {
 
 		this.state = 'idle';
 
-		this.sight = 200;
+		this.sight = 0;
 
-		this.aggressivePoint = -0.01;
+		this.aggressivePoint = 0;
 		this.attackProgress = new Progress(0, 1, 1, 1, { begin: false, end: false });
 
 		this.target = null;
@@ -524,7 +524,9 @@ Korea.AI = class extends You.Object {
 			this.attackProgress.update(delta);
 
 			if (this.sight ** 2 < sq) {
+				console.log('aggressive -> idle')
 				this.target = null;
+				this.parent.moveable.destination = null;
 				this.attackProgress.current = 0;
 				this.state = 'idle'
 			}
@@ -551,6 +553,7 @@ Korea.AI = class extends You.Object {
 			if (this.sight ** 2 < sq) {
 				console.log('follow -> idle')
 				this.target = null;
+				this.parent.moveable.destination = null;
 				this.state = 'idle'
 			}
 			else if (this.parent.transform.size[0] ** 2 >= sq) {
