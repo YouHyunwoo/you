@@ -1,46 +1,4 @@
-function use(target, f, ...args) {
-	f.call(target, ...args);
-}
-
-function log(strings) {
-	console.log(strings.raw[0]);
-}
-
-function map2obj(m) {
-	let o = Object.create(null);
-	for (let [k, v] of m) { o[k] = v; }
-	return o;
-}
-
-function obj2map(o) {
-	let m = new Map();
-	for (let k of Object.keys(o)) { m.set(k, o[k]); }
-	return m;
-}
-
-function randomColor(base) {
-	if (!base) { base = 0; }
-	var letters = '0123456789ABCDEF'.substring(base);
-	var color = '#';
-	for (var i = 0; i < 6; i++) {
-		color += letters[ Math.floor(Math.random() * (16 - base)) ];
-	}
-	return color;
-}
-
-function random(start, end) {
-	return Math.floor(Math.random() * (end - start)) + start;
-}
-
-function print(message) {
-	console.log(message);
-}
-
-function clone(o) {
-	return Object.assign(Object.create(Object.getPrototypeOf(o)), o);
-}
-
-var Progress = class Progress {
+class Progress {
 
 	constructor(begin, end, speed, value, rotatable) {
 		this.begin = begin;
@@ -107,10 +65,7 @@ var Progress = class Progress {
 	}
 
 	toJSON() {
-		return {
-			'@class': this.constructor.name,
-			...this
-		};
+		return this;
 	}
 
 	static fromJSON(object) {
@@ -122,19 +77,4 @@ var Progress = class Progress {
 	}
 }
 
-// console.dir(window['Progress'])
-
-const CW = Symbol();
-const CCW = Symbol();
-
-window.requestAFrame = window.requestAnimationFrame ||
-						window.webkitRequestAnimationFrame ||
-						window.mozRequestAnimationFrame ||
-						window.oRequestAnimationFrame ||
-						((callback) => window.setTimeout(callback, 1000 / 60));
-
-window.cancelAFrame = window.cancelAnimationFrame ||
-						window.webkitCancelAnimationFrame ||
-						window.mozCancelAnimationFrame ||
-						window.oCancelAnimationFrame ||
-						((id) => window.clearTimeout(id));
+export { Progress as default };

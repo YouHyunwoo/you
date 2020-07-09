@@ -592,6 +592,7 @@ You.Object = class You_Object {
 				if (this[component.name] == undefined) {
 					Object.defineProperty(this, component.name, {
 						value: component,
+						configurable: true
 					});
 				}
 			}
@@ -735,24 +736,39 @@ You.Object = class You_Object {
 	}
 
 	static fromJSON(object) {
-		let cls = window;
+		let instance = new (object['@class'].match(/[A-Z][^_]*/g).reduce((acc, cur, idx, arr) => acc[cur], window))();
 
-		for (let i of object['@class'].match(/[A-Z][^_]*/g)) {
-			cls = cls[i];
+		for (let prop in object) {
+			if (prop == '@class') {
+				continue;
+			}
+			else if (prop == 'components') {
+				instance.addComponents(
+					...object.components.map((value, index, array) =>
+						value['@class'].match(/[A-Z][^_]*/g)
+							.reduce((acc, cur, idx, arr) => acc[cur], window)
+							.fromJSON(value)
+					)
+				);
+			}
+			else {
+				if (object[prop] instanceof Object && object[prop].hasOwnProperty('@class')) {
+					instance[prop] = object[prop]['@class']
+										.match(/[A-Z][^_]*/g)
+										.reduce((acc, cur) => acc[cur], window)
+										.fromJSON(object[prop]);
+				}
+				else {
+					instance[prop] = object[prop];
+				}
+			}
 		}
-
-		let instance = new cls(object.name);
-		instance.enable = object.enable;
-		instance.addComponents(
-			...object.components.map((value, index, array) => this.fromJSON(value))
-		);
-		instance.tags = object.tags;
 
 		return instance;
 	}
 };
 
-You.State = class extends You.Object {
+You.State = class You_State extends You.Object {
 	constructor(name) {
 		super(name);
 	}
@@ -776,7 +792,7 @@ You.State = class extends You.Object {
 	onExit(...args) {}
 };
 
-You.State.Context = class extends You.Object {
+You.State.Context = class You_State_Context extends You.Object {
 	constructor(name) {
 		super(name);
 
@@ -843,6 +859,26 @@ You.State.Context = class extends You.Object {
 				console.info('state cannot change: %s', stateName);
 			}
 		}
+	}
+
+	toJSON() {
+		let props = {...this};
+
+		delete props.state;
+
+		return {
+			'@class': this.constructor.name,
+			...props,
+			state: this.state.name
+		};
+	}
+
+	static fromJSON(object) {
+		let instance = super.fromJSON(object);
+
+		instance.state = instance.findComponent(object.state);
+
+		return instance;
 	}
 };
 

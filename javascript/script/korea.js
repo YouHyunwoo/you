@@ -141,25 +141,27 @@ var Korea = {
 														new Korea.Graphics.Frame()
 															.setTime(0)
 															.setDuration(1)
-															.setAction(function (delta, animator, animation) {
-																this['sprite renderer'].sprite = sprites.logo;
-															})
+															.setActions(new Korea.Event.Action(
+																'sprite',
+																sprites.logo
+															))
 													),
 												new Korea.Graphics.Animation('attack')
 													.addFrames(
 														new Korea.Graphics.Frame()
 															.setTime(0)
 															.setDuration(0.5)
-															.setAction(function (delta, animator, animation) {
-																this['sprite renderer'].sprite = sprites.tree;
-															}),
+															.setActions(new Korea.Event.Action(
+																'sprite',
+																sprites.tree
+															)),
 														new Korea.Graphics.Frame()
 															.setTime(0.5)
 															.setDuration(0.1)
-															.setAction(function (delta, animator, animation) {
-																animation.play(0);
-																animator.transit('idle');
-															}),
+															.setActions(
+																new Korea.Event.Action('animation play', 0),
+																new Korea.Event.Action('animation transit', 'idle'),
+															)
 													)
 											),
 										new Korea.Stats('stats')
@@ -207,7 +209,7 @@ var Korea = {
 				let json = JSON.stringify(this.map, null, 4);
 
 				console.dir(json);
-				// this.map = You.Object.fromJSON(JSON.parse(json));
+				this.map = You.Object.fromJSON(JSON.parse(json));
 			},
 
 			out() {
@@ -665,12 +667,13 @@ Korea.Graphics.Image = class Korea_Graphics_Image {
 
 	toJSON() {
 		return {
-
+			'@class': this.constructor.name,
+			...this
 		}
 	}
 
-	fromJSON(object) {
-
+	static fromJSON(object) {
+		return Korea.Asset.Image.load(object.file);
 	}
 };
 
@@ -743,7 +746,7 @@ Korea.Graphics.Sprite = class Korea_Graphics_Sprite {
 	toJSON() {
 		return {
 			'@class': this.constructor.name,
-			sheet: this.sheet.file,
+			sheet: this.sheet,
 			sx: this.sx,
 			sy: this.sy,
 			swidth: this.swidth,
@@ -753,27 +756,27 @@ Korea.Graphics.Sprite = class Korea_Graphics_Sprite {
 		};
 	}
 
-	fromJSON(object) {
-		
+	static fromJSON(object) {
+		return You.Object.fromJSON(object);
 	}
 };
 
-Korea.Graphics.Frame = class {
-
-	#action;
+Korea.Graphics.Frame = class Korea_Graphics_Frame {
 
 	constructor() {
-		this.#action = null;
+		this.actions = [];
 		this.time = 0;
 		this.duration = 0;
 	}
 
-	update(delta, animator, animation) {
-		this.#action.call(animator.parent instanceof Korea.GameObject ? animator.parent : null, delta, animator, animation)
+	update(delta, object) {
+		this.actions.forEach((action) => action.run(delta, object));
 	}
 
-	setAction(action) {
-		this.#action = action;
+	setActions(...actions) {
+		for (let action of actions) {
+			this.actions.push(action);
+		}
 
 		return this;
 	}
@@ -789,9 +792,47 @@ Korea.Graphics.Frame = class {
 
 		return this;
 	}
+
+	static fromJSON(object) {
+		return new this()
+				.setActions(...object.actions.map((action) => new Korea.Event.Action(action)))
+				.setTime(object.time)
+				.setDuration(object.duration);
+	}
 };
 
-Korea.Graphics.Animation = class extends You.State {
+Korea.Event = {};
+Korea.Event.Action = class Korea_Graphics_Action {
+	constructor(name, ...args) {
+		this.name = name;
+		this.args = args;
+	}
+
+	run(delta, object) {
+		if (this.name == 'change sprite') {
+			object['sprite renderer'].sprite = this.args[0];
+		}
+		else if (this.name == 'animation play') {
+			object['animator'].state.play(this.args.length == 1 ? this.args[0] : null);
+		}
+		else if (this.name == 'animation transit') {
+			object['animator'].transit(this.args[0]);
+		}
+	}
+
+	toJSON() {
+		return {
+			'@class': this.constructor.name,
+			...this
+		};
+	}
+
+	static fromJSON(object) {
+		return You.Object.fromJSON(object);
+	}
+}
+
+Korea.Graphics.Animation = class Korea_Graphics_Animation extends You.State {
 
 	#playing = false;
 
@@ -805,7 +846,7 @@ Korea.Graphics.Animation = class extends You.State {
 
 		for (let frame of this.#frames) {
 			if (frame.time <= current && current < frame.time + frame.duration) {
-				frame.update(delta, this.parent, this);
+				frame.update(delta, this.parent.parent);
 			}
 		}
 	}
@@ -842,15 +883,38 @@ Korea.Graphics.Animation = class extends You.State {
 	}
 
 	setSpeed(speed) {
-		this.progress.speed = speed || 1;
+		this.#progress.speed = speed || 1;
 
 		return this;
+	}
+
+	toJSON() {
+		return {
+			'@class': this.constructor.name,
+			...this,
+			playing: this.#playing,
+			frames: this.#frames,
+			progress: this.#progress
+		}
+	}
+
+	static fromJSON(object) {
+		let instance = new (object['@class'].match(/[A-Z][^_]*/g).reduce((acc, cur) => acc[cur], window))(object.name);
+
+		instance.addFrames(...object.frames.map((frame) => Korea.Graphics.Frame.fromJSON(frame)));
+		instance.play(object.progress.current);
+		if (!object.playing) {
+			instance.pause();
+		}
+		instance.setSpeed(object.progress.speed);
+
+		return instance;
 	}
 };
 
 // Player
 Korea.Player = {};
-Korea.Player.Move = class extends You.Object {
+Korea.Player.Move = class Korea_Player_Move extends You.Object {
 	onUpdate(delta) {
 		if (You.Input.key.press('a')) {
 			this.parent.transform.position[0] -= this.parent.moveable.speed * delta;
@@ -870,7 +934,7 @@ Korea.Player.Move = class extends You.Object {
 	}
 };
 
-Korea.Player.Attack = class extends You.Object {
+Korea.Player.Attack = class Korea_Player_Attack extends You.Object {
 	constructor(name) {
 		super(name);
 
