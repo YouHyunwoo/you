@@ -61,7 +61,6 @@ var Korea = {
 		},
 		game: {
 			in() {
-				// play selected character
 				// v. Image
 				// 1. 테스트 맵 생성
 				// 2. 테스트 캐릭터 생성
@@ -70,7 +69,7 @@ var Korea = {
 				// 4. 캐릭터 애니메이션: Frame, Animation
 				// 5. 테스트 몬스터 생성: Stats
 				// 6. 캐릭터 근접 공격, 주문: Animator
-				// 7. 몬스터 AI: AI
+				// 7. 몬스터 AI: AI, You.dispose, You.onCreate
 				// 8. 맵 저장
 				// 9. 캐릭터 저장
 				// 10. 오브젝트 저장
@@ -79,32 +78,51 @@ var Korea = {
 				// 12. 실제 캐릭터 기획, 생성
 				// 13. 실제 몬스터 기획, 생성
 
+				let sprites = {
+					tree: new Korea.Graphics.Sprite()
+							.setSheet(Korea.Asset.Image.load('tree.png'))
+							.setAnchor([0.5, 0.95])
+							.setScale([0.5, 0.5]),
+					logo: new Korea.Graphics.Sprite()
+							.setSheet(Korea.Asset.Image.load('logo.png'))
+							.setAnchor([0.5, 0.5])
+							.setScale([0.15, 0.25]),
+					stone: new Korea.Graphics.Sprite()
+							.setSheet(Korea.Asset.Image.load('stone.png'))
+							.setAnchor([0.5, 0.5])
+							.setScale([0.3, 0.3]),
+				};
+
 				// 1. 테스트 맵 생성
 				this.map = new Korea.Map('map')
 							.setPosition([50, 50])
-							.setSize([1000, 1000])
+							.setSize([600, 600])
 							.setColor('rgba(255, 255, 255, 0.2)')
 							.addComponents(
 								new Korea.ObjectArrangement('object arrangement')
 							);
+
+				this.trees = [];
+				for (let i = 0; i < 2; i++) {
+					let tree = new Korea.GameObject('tree' + i)
+							.addTags('object')
+							.setPosition([Math.random() * this.map.width, Math.random() * this.map.height])
+							.setSize([20, 20])
+							.setAnchor([0.5, 0.5])
+							.addComponents(
+								new Korea.SpriteRenderer('sprite renderer')
+									.setSprite(sprites.tree)
+							);
+
+					this.trees.push(tree);
+					this.map.addComponents(tree);
+				}
 
 				// 2. 테스트 캐릭터 생성
 
 				// 3. 캐릭터 움직임
 
 				// 4. 캐릭터 애니메이션
-
-				let sprites = {
-					tree: new Korea.Graphics.Sprite()
-							.setSheet(Korea.Asset.Image.load('tree.png'))
-							.setAnchor([0.5, 0.5]),
-					logo: new Korea.Graphics.Sprite()
-							.setSheet(Korea.Asset.Image.load('logo.png'))
-							.setAnchor([0.5, 0.5]),
-					stone: new Korea.Graphics.Sprite()
-							.setSheet(Korea.Asset.Image.load('stone.png'))
-							.setAnchor([0.5, 0.5]),
-				};
 
 				this.character = new Korea.GameObject('character')
 									.addTags('character')
@@ -150,9 +168,10 @@ var Korea = {
 											.setStats('mp', 2)
 											.setStats('ap', 1)
 											.setStats('dp', 0),
-										new Korea.Attack('attack'),
 										new Korea.HPRepresenter('hp representer'),
-										new Korea.Moveable('moveable').setSpeed(150)
+										new Korea.Moveable('moveable').setSpeed(150),
+										new Korea.Player.Attack('player attack'),
+										new Korea.Player.Move('player move'),
 									);
 
 				this.map.addComponents(this.character);
@@ -161,7 +180,7 @@ var Korea = {
 
 				this.monster = new Korea.GameObject('monster')
 								.addTags('monster', 'character')
-								.setPosition([0, 0])
+								.setPosition([100, 100])
 								.setSize([50, 50])
 								.setAnchor([0.5, 0.5])
 								.addComponents(
@@ -183,6 +202,12 @@ var Korea = {
 								);
 
 				this.map.addComponents(this.monster);
+
+				// 8. 맵 저장
+				let json = JSON.stringify(this.map, null, 4);
+
+				console.dir(json);
+				// this.map = You.Object.fromJSON(JSON.parse(json));
 			},
 
 			out() {
@@ -191,22 +216,6 @@ var Korea = {
 
 			update(delta) {
 				this.map.update(delta);
-
-				if (You.Input.key.press('a')) {
-					this.character.transform.position[0] -= this.character.moveable.speed * delta;
-				}
-
-				if (You.Input.key.press('d')) {
-					this.character.transform.position[0] += this.character.moveable.speed * delta;
-				}
-
-				if (You.Input.key.press('s')) {
-					this.character.transform.position[1] += this.character.moveable.speed * delta;
-				}
-
-				if (You.Input.key.press('w')) {
-					this.character.transform.position[1] -= this.character.moveable.speed * delta;
-				}
 			},
 
 			draw(context) {
@@ -216,7 +225,7 @@ var Korea = {
 	},
 };
 
-Korea.Map = class extends You.Panel {
+Korea.Map = class Korea_Map extends You.Panel {
 	constructor(name) {
 		super(name);
 
@@ -242,7 +251,7 @@ Korea.Map = class extends You.Panel {
 	}
 };
 
-Korea.ObjectArrangement = class extends You.Object {
+Korea.ObjectArrangement = class Korea_ObjectArrangement extends You.Object {
 	onUpdate(delta) {
 		let map = this.parent;
 
@@ -256,10 +265,7 @@ Korea.ObjectArrangement = class extends You.Object {
 	}
 };
 
-Korea.GameObject = class extends You.Object {
-
-	#toBeReleased = false;
-
+Korea.GameObject = class Korea_GameObject extends You.Object {
 	constructor(name) {
 		super(name);
 
@@ -269,16 +275,6 @@ Korea.GameObject = class extends You.Object {
 		};
 
 		this.anchor = [0, 0];
-	}
-
-	deleteObject() {
-		this.#toBeReleased = true;
-	}
-
-	onUpdate(delta) {
-		if (this.#toBeReleased && this.parent) {
-			this.parent.removeComponents(this);
-		}
 	}
 
 	draw(context, ...args) {
@@ -311,7 +307,7 @@ Korea.GameObject = class extends You.Object {
 	}
 };
 
-Korea.Moveable = class extends You.Object {
+Korea.Moveable = class Korea_Moveable extends You.Object {
 	constructor(name) {
 		super(name);
 
@@ -350,7 +346,7 @@ Korea.Moveable = class extends You.Object {
 	}
 };
 
-Korea.SpriteRenderer = class extends You.Object {
+Korea.SpriteRenderer = class Korea_SpriteRenderer extends You.Object {
 	constructor(name) {
 		super(name);
 
@@ -384,7 +380,7 @@ Korea.SpriteRenderer = class extends You.Object {
 	}
 };
 
-Korea.Stats = class extends You.Object {
+Korea.Stats = class Korea_Stats extends You.Object {
 	constructor(name) {
 		super(name);
 
@@ -404,46 +400,7 @@ Korea.Stats = class extends You.Object {
 	}
 };
 
-Korea.Attack = class extends You.Object {
-	constructor(name) {
-		super(name);
-
-		this.selectedObject = null;
-	}
-
-	onUpdate(delta) {
-		let mouse = You.Input.mouse;
-
-		if (mouse.down) {
-			if (this.parent.animator.state.name != 'attack') {
-				this.parent.animator.transit('attack');
-			}
-
-			if (this.selectedObject) {
-				this.selectedObject.stats.hp -= this.parent.stats.ap - this.selectedObject.stats.dp;
-
-				if (this.selectedObject.stats.hp <= 0) {
-					this.selectedObject.deleteObject();
-				}
-			}
-		}
-
-		if (mouse.move) {
-			let map = this.parent.parent;
-
-			for (let monster of map.findComponents('#monster')) {
-				let monpos = monster.transform.position;
-				let sq = monpos.subv(this.parent.transform.position);
-
-				if (Math.sqrt(sq.dotv(sq)) < 100) {
-					this.selectedObject = monster;
-				}
-			}
-		}
-	}
-}
-
-Korea.HPRepresenter = class extends You.Object {
+Korea.HPRepresenter = class Korea_HPRepresenter extends You.Object {
 	onDraw(context) {
 		let object = this.parent;
 
@@ -457,9 +414,9 @@ Korea.HPRepresenter = class extends You.Object {
 
 		context.restore();
 	}
-}
+};
 
-Korea.AI = class extends You.Object {
+Korea.AI = class Korea_AI extends You.Object {
 	constructor(name) {
 		super(name);
 
@@ -665,14 +622,17 @@ Korea.Asset.Image.Loader = class {
 };
 
 Korea.Graphics = {};
-Korea.Graphics.Image = class {
+Korea.Graphics.Image = class Korea_Graphics_Image {
 
 	#loaded = false;
 
 	constructor(file) {
 		this.file = file;
 
-		this.raw = new Image();
+		Object.defineProperty(this, 'raw', {
+			value: new Image(),
+			writable: true
+		});
 
 		this.raw.onload = () => {
 			this.#loaded = true;
@@ -702,9 +662,19 @@ Korea.Graphics.Image = class {
 	get height() {
 		return this.#loaded ? this.raw.naturalHeight : null;
 	}
+
+	toJSON() {
+		return {
+
+		}
+	}
+
+	fromJSON(object) {
+
+	}
 };
 
-Korea.Graphics.Sprite = class {
+Korea.Graphics.Sprite = class Korea_Graphics_Sprite {
 	constructor() {
 		this.sheet = null;
 
@@ -768,6 +738,23 @@ Korea.Graphics.Sprite = class {
 		this.scale = scale;
 
 		return this;
+	}
+
+	toJSON() {
+		return {
+			'@class': this.constructor.name,
+			sheet: this.sheet.file,
+			sx: this.sx,
+			sy: this.sy,
+			swidth: this.swidth,
+			sheight: this.sheight,
+			anchor: this.anchor,
+			scale: this.scale
+		};
+	}
+
+	fromJSON(object) {
+		
 	}
 };
 
@@ -858,5 +845,67 @@ Korea.Graphics.Animation = class extends You.State {
 		this.progress.speed = speed || 1;
 
 		return this;
+	}
+};
+
+// Player
+Korea.Player = {};
+Korea.Player.Move = class extends You.Object {
+	onUpdate(delta) {
+		if (You.Input.key.press('a')) {
+			this.parent.transform.position[0] -= this.parent.moveable.speed * delta;
+		}
+
+		if (You.Input.key.press('d')) {
+			this.parent.transform.position[0] += this.parent.moveable.speed * delta;
+		}
+
+		if (You.Input.key.press('s')) {
+			this.parent.transform.position[1] += this.parent.moveable.speed * delta;
+		}
+
+		if (You.Input.key.press('w')) {
+			this.parent.transform.position[1] -= this.parent.moveable.speed * delta;
+		}
+	}
+};
+
+Korea.Player.Attack = class extends You.Object {
+	constructor(name) {
+		super(name);
+
+		this.selectedObject = null;
+	}
+
+	onUpdate(delta) {
+		let mouse = You.Input.mouse;
+
+		if (mouse.down) {
+			if (this.parent.animator.state.name != 'attack') {
+				this.parent.animator.transit('attack');
+			}
+
+			if (this.selectedObject) {
+				this.selectedObject.stats.hp -= this.parent.stats.ap - this.selectedObject.stats.dp;
+
+				if (this.selectedObject.stats.hp <= 0) {
+					this.selectedObject.dispose();
+					this.selectedObject = null;
+				}
+			}
+		}
+
+		if (mouse.move) {
+			let map = this.parent.parent;
+
+			for (let monster of map.findComponents('#monster')) {
+				let monpos = monster.transform.position;
+				let sq = monpos.subv(this.parent.transform.position);
+
+				if (Math.sqrt(sq.dotv(sq)) < 100) {
+					this.selectedObject = monster;
+				}
+			}
+		}
 	}
 };

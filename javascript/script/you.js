@@ -441,7 +441,7 @@ You.Input = class {
 				this.#tkey.down.add(keycode);
 			}
 
-			console.log(e.key);
+			// console.log(e.key);
 		});
 
 		window.addEventListener('keyup', (e) => {
@@ -539,14 +539,22 @@ You.Asset = class {
 	}
 };
 
-You.Object = class {
+You.Object = class You_Object {
+
+	#disposed = false;
+
 	constructor(name) {
-		this.parent = null;
+		Object.defineProperty(this, 'parent', {
+			value: null,
+			writable: true
+		});
 
 		this.name = name;
 		this.enable = true;
 		this.components = [];
 		this.tags = [];
+
+		this.onCreate();
 	}
 
 	set order(value) {
@@ -569,8 +577,11 @@ You.Object = class {
 	addComponents(...components) {
 		for (let component of components) {
 			if (!component) {
-				console.log(components)
 				throw 'argumentError';
+			}
+
+			if (component.disposed) {
+				continue;
 			}
 
 			component.parent = this;
@@ -579,7 +590,9 @@ You.Object = class {
 
 			if (component.name) {
 				if (this[component.name] == undefined) {
-					this[component.name] = component;
+					Object.defineProperty(this, component.name, {
+						value: component,
+					});
 				}
 			}
 		}
@@ -601,7 +614,7 @@ You.Object = class {
 				component.parent = null;
 				component.onRemoved(this);
 
-				if (component.name && this[component.name] == component) {
+				if (this.hasOwnProperty(component.name) && this[component.name] == component) {
 					delete this[component.name];
 				}
 			}
@@ -615,6 +628,10 @@ You.Object = class {
 
 		loopComponent:
 		for (let c of this.components) {
+			if (c.disposed) {
+				continue;
+			}
+
 			if (name && c.name != null && c.name != name) {
 				continue;
 			}
@@ -637,6 +654,10 @@ You.Object = class {
 
 		loopComponent:
 		for (let c of this.components) {
+			if (c.disposed) {
+				continue;
+			}
+
 			if (name && c.name != null && c.name != name) {
 				continue;
 			}
@@ -676,17 +697,59 @@ You.Object = class {
 	onAdded(parent) {}
 	onRemoved(parent) {}
 
+	dispose() {
+		this.#disposed = true;
+		this.onDispose();
+	}
+
+	get disposed() {
+		return this.#disposed;
+	}
+
+	onCreate() {}
+	onDispose() {}
+
 	update(delta, ...args) {
-		this.onUpdate(delta, ...args);
-		this.components.forEach((c) => c.update(delta, ...args));
+		if (this.enable && !this.#disposed) {
+			this.onUpdate(delta, ...args);
+			[...this.components].forEach((c) => c.update(delta, ...args));
+		}
+
+		this.components.filter((c) => c.disposed).forEach((c) => this.removeComponents(c));
 	}
 	onUpdate(delta, ...args) {}
 
 	draw(context, ...args) {
-		this.onDraw(context, ...args);
-		this.components.forEach((c) => c.draw(context, ...args));
+		if (this.enable && !this.#disposed) {
+			this.onDraw(context, ...args);
+			this.components.forEach((c) => c.draw(context, ...args));
+		}
 	}
 	onDraw(context, ...args) {}
+
+	toJSON() {
+		return {
+			'@class': this.constructor.name,
+			...this
+		};
+	}
+
+	static fromJSON(object) {
+		let cls = window;
+
+		for (let i of object['@class'].match(/[A-Z][^_]*/g)) {
+			cls = cls[i];
+		}
+
+		let instance = new cls(object.name);
+		instance.enable = object.enable;
+		instance.addComponents(
+			...object.components.map((value, index, array) => this.fromJSON(value))
+		);
+		instance.tags = object.tags;
+
+		return instance;
+	}
 };
 
 You.State = class extends You.Object {
