@@ -315,6 +315,32 @@ var You = {
 	},
 };
 
+You.fromJSON = function (data) {
+	if (data instanceof Array) {
+		return data.map((d) => You.fromJSON(d));
+	}
+	else if (data instanceof Object) {
+		if (data.hasOwnProperty('@class')) {
+			return data['@class']
+					.match(/[A-Z][^_]*/g)
+					.reduce((acc, cur) => acc[cur], window)
+					.fromJSON(data);
+		}
+		else {
+			// return Object.key(data).reduce((acc, key) => acc[key] = You.fromJSON(data[key]), {});
+
+			for (let p in data) {
+				data[p] = You.fromJSON(data[p]);
+			}
+
+			return data;
+		}
+	}
+	else {
+		return data;
+	}
+}
+
 You.Animation = class {
 	static #animations = [];
 	
@@ -736,31 +762,16 @@ You.Object = class You_Object {
 	}
 
 	static fromJSON(object) {
-		let instance = new (object['@class'].match(/[A-Z][^_]*/g).reduce((acc, cur, idx, arr) => acc[cur], window))();
+		let instance = new this();
+
+		delete object['@class']
 
 		for (let prop in object) {
-			if (prop == '@class') {
-				continue;
-			}
-			else if (prop == 'components') {
-				instance.addComponents(
-					...object.components.map((value, index, array) =>
-						value['@class'].match(/[A-Z][^_]*/g)
-							.reduce((acc, cur, idx, arr) => acc[cur], window)
-							.fromJSON(value)
-					)
-				);
+			if (prop == 'components') {
+				instance.addComponents(...You.fromJSON(object[prop]));
 			}
 			else {
-				if (object[prop] instanceof Object && object[prop].hasOwnProperty('@class')) {
-					instance[prop] = object[prop]['@class']
-										.match(/[A-Z][^_]*/g)
-										.reduce((acc, cur) => acc[cur], window)
-										.fromJSON(object[prop]);
-				}
-				else {
-					instance[prop] = object[prop];
-				}
+				instance[prop] = You.fromJSON(object[prop]);
 			}
 		}
 

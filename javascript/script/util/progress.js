@@ -77,4 +77,4 @@ class Progress {
 	}
 }
 
-export { Progress as default };
+export { Progress };

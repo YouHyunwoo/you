@@ -142,7 +142,7 @@ var Korea = {
 															.setTime(0)
 															.setDuration(1)
 															.setActions(new Korea.Event.Action(
-																'sprite',
+																'change sprite',
 																sprites.logo
 															))
 													),
@@ -152,7 +152,7 @@ var Korea = {
 															.setTime(0)
 															.setDuration(0.5)
 															.setActions(new Korea.Event.Action(
-																'sprite',
+																'change sprite',
 																sprites.tree
 															)),
 														new Korea.Graphics.Frame()
@@ -454,7 +454,7 @@ Korea.AI = class Korea_AI extends You.Object {
 
 						this.state = this.aggressivePoint < 0 ? 'aggressive' : 'follow';
 
-						console.log('idle ->' + this.state);
+						// console.log('idle ->' + this.state);
 					}
 				}
 			}
@@ -462,7 +462,7 @@ Korea.AI = class Korea_AI extends You.Object {
 			let prob = Math.random();
 
 			if (prob < 0.01) {
-				console.log('idle -> explore')
+				// console.log('idle -> explore')
 				this.parent.moveable.destination = [Math.random() * map.size[0], Math.random() * map.size[1]];
 				this.state = 'explore';
 			}
@@ -471,7 +471,7 @@ Korea.AI = class Korea_AI extends You.Object {
 			let prob = Math.random();
 
 			if (prob < 0.01) {
-				console.log('exp -> idle')
+				// console.log('exp -> idle')
 				this.parent.moveable.destination = null;
 				this.state = 'idle';
 			}
@@ -483,7 +483,7 @@ Korea.AI = class Korea_AI extends You.Object {
 			this.attackProgress.update(delta);
 
 			if (this.sight ** 2 < sq) {
-				console.log('aggressive -> idle')
+				// console.log('aggressive -> idle')
 				this.target = null;
 				this.parent.moveable.destination = null;
 				this.attackProgress.current = 0;
@@ -492,11 +492,11 @@ Korea.AI = class Korea_AI extends You.Object {
 			else if (this.parent.stats.attackRange ** 2 >= sq) {
 				if (this.target.stats) {
 					if (this.attackProgress.isFull) {
-						console.log('attack!')
+						// console.log('attack!')
 						this.target.stats.hp -= this.parent.stats.ap - this.target.stats.dp;
 						this.attackProgress.current = 0;
 					}
-					if (Korea.debug) console.log(this.attackProgress.rate)
+					// if (Korea.debug) console.log(this.attackProgress.rate)
 				}
 
 				this.parent.moveable.destination = null;
@@ -510,7 +510,7 @@ Korea.AI = class Korea_AI extends You.Object {
 			let sq = diff.dotv(diff);
 
 			if (this.sight ** 2 < sq) {
-				console.log('follow -> idle')
+				// console.log('follow -> idle')
 				this.target = null;
 				this.parent.moveable.destination = null;
 				this.state = 'idle'
@@ -757,7 +757,15 @@ Korea.Graphics.Sprite = class Korea_Graphics_Sprite {
 	}
 
 	static fromJSON(object) {
-		return You.Object.fromJSON(object);
+		let sprite = new this();
+
+		delete object['@class'];
+
+		for (let p in object) {
+			sprite[p] = You.fromJSON(object[p]);
+		}
+
+		return sprite;
 	}
 };
 
@@ -795,21 +803,23 @@ Korea.Graphics.Frame = class Korea_Graphics_Frame {
 
 	static fromJSON(object) {
 		return new this()
-				.setActions(...object.actions.map((action) => new Korea.Event.Action(action)))
+				.setActions(...object.actions.map((action) => You.fromJSON(action)))
 				.setTime(object.time)
 				.setDuration(object.duration);
 	}
 };
 
 Korea.Event = {};
-Korea.Event.Action = class Korea_Graphics_Action {
+Korea.Event.Action = class Korea_Event_Action {
 	constructor(name, ...args) {
 		this.name = name;
 		this.args = args;
 	}
 
 	run(delta, object) {
+		// console.log(this.name)
 		if (this.name == 'change sprite') {
+			// console.log('change sprite')
 			object['sprite renderer'].sprite = this.args[0];
 		}
 		else if (this.name == 'animation play') {
@@ -828,7 +838,7 @@ Korea.Event.Action = class Korea_Graphics_Action {
 	}
 
 	static fromJSON(object) {
-		return You.Object.fromJSON(object);
+		return new this(object.name, ...You.fromJSON(object.args));
 	}
 }
 
@@ -839,7 +849,7 @@ Korea.Graphics.Animation = class Korea_Graphics_Animation extends You.State {
 	#progress = new Progress(0, 0, 1, 0, { begin: true, end: true });
 	#frames = [];
 
-	update(delta) {
+	onUpdate(delta) {
 		this.#progress.update(delta);
 
 		let current = this.#progress.current;
