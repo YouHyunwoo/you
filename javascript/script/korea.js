@@ -78,44 +78,32 @@ var Korea = {
 				// 12. 실제 캐릭터 기획, 생성
 				// 13. 실제 몬스터 기획, 생성
 
-				let sprites = {
-					tree: new Korea.Graphics.Sprite()
-							.setSheet(You.Asset.Image.load('tree.png'))
-							.setAnchor([0.5, 0.95])
-							.setScale([0.5, 0.5]),
-					logo: new Korea.Graphics.Sprite()
-							.setSheet(You.Asset.Image.load('logo.png'))
-							.setAnchor([0.5, 0.5])
-							.setScale([0.15, 0.25]),
-					stone: new Korea.Graphics.Sprite()
-							.setSheet(You.Asset.Image.load('stone.png'))
-							.setAnchor([0.5, 0.5])
-							.setScale([0.3, 0.3]),
-					building: new Korea.Graphics.Sprite()
-							.setSheet(You.Asset.Image.load('buildings.png'))
-							.setAnchor([0.5, 0.8])
-							.setScale([5, 5]),
-					tree0: new Korea.Graphics.Sprite()
-							.setSheet(You.Asset.Image.load('trees.png'))
-							.setSource([0, 0, 64, 64])
-							.setAnchor([0.5, 0.8])
-							.setScale([5, 5]),
-					tree1: new Korea.Graphics.Sprite()
-							.setSheet(You.Asset.Image.load('trees.png'))
-							.setSource([65, 0, 63, 64])
-							.setAnchor([0.5, 0.8])
-							.setScale([8, 8]),
-					squirrel_idle: new Korea.Graphics.Sprite()
-							.setSheet(You.Asset.Image.load('다람쥐.png'))
-							.setSource([0, 0, 48, 32])
-							.setAnchor([0.5, 0.8])
-							.setScale([1, 1]),
-					squirrel_move: new Korea.Graphics.Sprite()
-							.setSheet(You.Asset.Image.load('다람쥐.png'))
-							.setSource([0, 32, 48, 32])
-							.setAnchor([0.5, 0.8])
-							.setScale([1, 1]),
-				};
+				let sheets = Korea.Graphics.Sprite.Sheet;
+
+				sheets.add(
+					new Korea.Graphics.Sprite.Sheet('logo', You.Asset.Image.load('logo.png'))
+						.addSprites(
+							['logo', [0, 0, null, null], [0.5, 0.5], [0.15, 0.25]]
+						),
+					new Korea.Graphics.Sprite.Sheet('stone', You.Asset.Image.load('stone.png'))
+						.addSprites(
+							['stone', [0, 0, null, null], [0.5, 0.5], [0.3, 0.3]]
+						),
+					new Korea.Graphics.Sprite.Sheet('buildings', You.Asset.Image.load('buildings.png'))
+						.addSprites(
+							['building1', [0, 0, null, null], [0.5, 0.8], [5, 5]]
+						),
+					new Korea.Graphics.Sprite.Sheet('trees', You.Asset.Image.load('trees.png'))
+						.addSprites(
+							['tree0', [0, 0, 64, 64], [0.5, 0.8], [5, 5]],
+							['tree1', [65, 0, 63, 64], [0.5, 0.8], [8, 8]]
+						),
+					new Korea.Graphics.Sprite.Sheet('squirrel', You.Asset.Image.load('squirrel.png'))
+						.addSprites(
+							['idle', [0, 0, 48, 32], [0.5, 0.8], [1, 1]],
+							['move', [0, 32, 48, 32], [0.5, 0.8], [1, 1]]
+						)
+				);
 
 				// 1. 테스트 맵 생성
 				this.map = new Korea.Map('map')
@@ -134,7 +122,7 @@ var Korea = {
 								.setAnchor([0.5, 0.5])
 								.addComponents(
 									new Korea.SpriteRenderer('sprite renderer')
-										.setSprite(sprites.building)
+										.setSprite(sheets.get('buildings').building1)
 								);
 				this.buildings.push(building);
 				this.map.addComponents(building);
@@ -148,7 +136,7 @@ var Korea = {
 							.setAnchor([0.5, 0.5])
 							.addComponents(
 								new Korea.SpriteRenderer('sprite renderer')
-									.setSprite(sprites['tree' + parseInt(Math.random() * 2)])
+									.setSprite(sheets.get('trees')['tree' + parseInt(Math.random() * 2)])
 							);
 
 					this.trees.push(tree);
@@ -162,14 +150,14 @@ var Korea = {
 				// 4. 캐릭터 애니메이션
 
 				this.character = new Korea.GameObject('character')
-									.addTags('character')
+									.addTags('character', 'player')
 									.setPosition([300, 300])
 									.setSize([50, 50])
 									.setAnchor([0.5, 0.5])
 									.addComponents(
 										new Korea.SpriteRenderer('sprite renderer')
 											.setSprite(
-												sprites.tree
+												sheets.get('trees').tree0
 											),
 										new You.State.Context('animator')
 											.addComponents(
@@ -180,7 +168,7 @@ var Korea = {
 															.setDuration(1)
 															.setActions(new Korea.Event.Action(
 																'change sprite',
-																sprites.logo
+																sheets.get('logo').logo
 															))
 													),
 												new Korea.Graphics.Animation('attack')
@@ -190,7 +178,7 @@ var Korea = {
 															.setDuration(0.5)
 															.setActions(new Korea.Event.Action(
 																'change sprite',
-																sprites.tree
+																sheets.get('trees').tree0
 															)),
 														new Korea.Graphics.Frame()
 															.setTime(0.5)
@@ -219,14 +207,14 @@ var Korea = {
 				// 5. 테스트 몬스터 생성
 
 				this.monster = new Korea.GameObject('monster')
-								.addTags('monster', 'character')
+								.addTags('character')
 								.setPosition([100, 100])
 								.setSize([50, 50])
 								.setAnchor([0.5, 0.5])
 								.addComponents(
 									new Korea.SpriteRenderer('sprite renderer')
 										.setSprite(
-											sprites.stone
+											sheets.get('stone').stone
 										),
 									new Korea.Stats('stats')
 										.setStats('hp', 3)
@@ -251,7 +239,7 @@ var Korea = {
 								.addComponents(
 									new Korea.SpriteRenderer('sprite renderer')
 										.setSprite(
-											sprites.squirrel_idle
+											sheets.get('squirrel').idle
 										),
 									new Korea.Stats('stats')
 										.setStats('hp', 3)
@@ -273,7 +261,7 @@ var Korea = {
 														.setDuration(1)
 														.setActions(new Korea.Event.Action(
 															'change sprite',
-															sprites.squirrel_idle
+															sheets.get('squirrel').idle
 														))
 												),
 											new Korea.Graphics.Animation('attack')
@@ -283,7 +271,7 @@ var Korea = {
 														.setDuration(0.5)
 														.setActions(new Korea.Event.Action(
 															'change sprite',
-															sprites.tree
+															sheets.get('squirrel').move
 														)),
 													new Korea.Graphics.Frame()
 														.setTime(0.5)
@@ -293,19 +281,19 @@ var Korea = {
 															new Korea.Event.Action('animation transit', 'idle'),
 														)
 												)
-										),
-									new Korea.Event()
-										.addConditions((delta, object) => object.name == "squirrel")
-										.addActions((delta, object) => console.log(object.name))
+										)
+									// new Korea.Event()
+									// 	.addConditions((delta, object) => object.name == "squirrel")
+									// 	.addActions((delta, object) => console.log(object.name))
 								)
 
 				this.map.addComponents(this.squirrel);
 
 				// 8. 맵 저장
-				// let json = JSON.stringify(this.map, null, 4);
+				let json = JSON.stringify(this.map, null, 4);
 
 				// console.log(json);
-				// this.map = You.Data.fromJSON(JSON.parse(json));
+				this.map = You.Data.fromJSON(JSON.parse(json));
 			},
 
 			out() {
@@ -445,11 +433,8 @@ Korea.Moveable = class Korea_Moveable extends You.Object {
 };
 
 Korea.SpriteRenderer = class Korea_SpriteRenderer extends You.Object {
-	constructor(name) {
-		super(name);
 
-		this.sprite = null;
-	}
+	sprite = null;
 
 	onDraw(context) {
 		if (this.sprite) {
@@ -534,7 +519,7 @@ Korea.AI = class Korea_AI extends You.Object {
 		let map = this.parent.parent;
 
 		if (this.state == 'idle') {
-			for (let object of map.findComponents('#character')) {
+			for (let object of map.findComponents('#player')) {
 				if (object == this.parent) {
 					continue;
 				}
@@ -658,54 +643,52 @@ Korea.AI = class Korea_AI extends You.Object {
 
 Korea.Graphics = {};
 Korea.Graphics.Sprite = class Korea_Graphics_Sprite {
-	constructor() {
-		this.sheet = null;
 
-		this.sx = 0;
-		this.sy = 0;
-		this.swidth = null;
-		this.sheight = null;
+	source = [0, 0, null, null];
+	anchor = [0, 0];
+	scale = [1, 1];
 
-		this.anchor = [0, 0];
-		this.scale = [1, 1];
+	constructor(sheet, id) {
+		Object.defineProperty(this, 'sheet', {
+			value: sheet
+		});
+
+		Object.defineProperty(this, 'id', {
+			enumerable: true,
+			value: id
+		});
 	}
 
-	out() {
-		this.sheet = null;
+	dispose() {
+		Object.defineProperty(this, 'sheet', {
+			value: null
+		});
 	}
 
 	draw(context, x, y) {
-		if (this.swidth == 0 || this.sheight == 0) {
+		if (this.source[2] == 0 || this.source[3] == 0) {
 			return;
 		}
 
-		if (this.sheet && this.sheet.loaded) {
-			let [w, h] = [this.swidth || this.sheet.width, this.sheight || this.sheet.height];
-			this.sheet.draw(context, this.sx, this.sy, w, h, x - w * this.anchor[0] * this.scale[0], y - h * this.anchor[1] * this.scale[1], w * this.scale[0], h * this.scale[1]);
+		if (this.sheet.image && this.sheet.image.loaded) {
+			let [w, h] = [this.source[2] || this.sheet.image.width, this.source[3] || this.sheet.image.height];
+
+			this.sheet.image.draw(context,
+				this.source[0], this.source[1], w, h,
+				x - w * this.anchor[0] * this.scale[0], y - h * this.anchor[1] * this.scale[1], w * this.scale[0], h * this.scale[1]);
 		}
 	}
 
 	get width() {
-		return this.swidth || (this.swidth == 0) ? 0 : this.sheet.width;
+		return this.source[2] || (this.source[2] == 0) ? 0 : this.sheet.image.width;
 	}
 
 	get height() {
-		return this.sheight || (this.sheight == 0) ? 0 : this.sheet.height;
-	}
-
-	setSheet(sheet) {
-		this.sheet = sheet || null;
-
-		return this;
+		return this.source[3] || (this.source[3] == 0) ? 0 : this.sheet.image.height;
 	}
 
 	setSource(source) {
-		let [sx, sy, swidth, sheight] = source;
-
-		this.sx = sx || (sx == 0 ? sx : this.sx);
-		this.sy = sy || (sy == 0 ? sy : this.sy);
-		this.swidth = swidth || (swidth == 0 ? swidth : this.swidth);
-		this.sheight = sheight || (sheight == 0 ? sheight : this.sheight);
+		this.source = source;
 
 		return this;
 	}
@@ -722,20 +705,111 @@ Korea.Graphics.Sprite = class Korea_Graphics_Sprite {
 		return this;
 	}
 
-	toJSON = () => You.Data.toJSON(this);
+	toJSON() {
+		return {
+			'@class': this.constructor.name,
+			sheet: this.sheet.id,
+			...this
+		};
+	}
 
-	static fromJSON(object) {
-		let sprite = new this();
+	static fromJSON(data) {
+		let sheet = Korea.Graphics.Sprite.Sheet.get(data.sheet);
 
-		delete object['@class'];
+		let instance = new this(sheet, data.id)
+						.setSource(data.source)
+						.setAnchor(data.anchor)
+						.setScale(data.scale);
 
-		for (let p in object) {
-			sprite[p] = You.Data.fromJSON(object[p]);
-		}
-
-		return sprite;
+		return instance;
 	}
 };
+
+Korea.Graphics.Sprite.Sheet = class Korea_Graphics_Sprite_Sheet {
+
+	static #data = new Map();
+
+	static add(...args) {
+		for (let arg of args) {
+			this.#data.set(arg.id, arg);
+		}
+	}
+
+	static get(id) {
+		return this.#data.get(id);
+	}
+
+	static remove(...args) {
+		for (let arg of args) {
+			this.#data.delete(arg);
+		}
+	}
+
+	#sprites = [];
+
+	constructor(id, image) {
+		Object.defineProperty(this, 'id', {
+			enumerable: true,
+			value: id
+		});
+
+		Object.defineProperty(this, 'image', {
+			value: image
+		});
+	}
+
+	addSprites(...args) {
+		console.log(this.id, args)
+		for (let arg of args) {
+			let [id, source, anchor, scale] = arg;
+
+			if (this.hasOwnProperty(id)) {
+				throw 'invalid id';
+			}
+
+			let sprite = new Korea.Graphics.Sprite(this, id)
+							.setSource(source)
+							.setAnchor(anchor)
+							.setScale(scale);
+
+			Object.defineProperty(this, id, {
+				configurable: true,
+				value: sprite
+			})
+
+			this.#sprites.push(sprite);
+		}
+
+		return this;
+	}
+
+	removeSprites(...args) {
+		for (let arg of args) {
+			let id = arg;
+
+			delete this[id];
+		}
+
+		return this;
+	}
+
+	toJSON() {
+		return {
+			'@class': this.constructor.name,
+			...this,
+			sprites: this.#sprites,
+		};
+	}
+
+	static fromJSON(data) {
+		let instance = new this(data.id, You.Data.fromJSON(data.image));
+
+		// console.log(data.sprites.map((e) => [e.id, e.source, e.anchor, e.scale]));
+		instance.addSprites(...data.sprites.map((e) => [e.id, e.source, e.anchor, e.scale]));
+
+		return instance;
+	}
+}
 
 Korea.Graphics.Frame = class Korea_Graphics_Frame {
 	constructor() {
@@ -832,8 +906,6 @@ Korea.Event.Condition = class Korea_Event_Condition {
 	check(delta, object) {
 		return eval(condition);
 	}
-
-
 };
 
 Korea.Event.Action = class Korea_Event_Action {
