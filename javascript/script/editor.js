@@ -8,7 +8,7 @@ var Editor = {
 			in() {
 				this.prg_logo = new Progress(0, 100, 100, null, { begin: false, end: false });
 
-				return this;
+				this.logo = You.Asset.Image.load('logo.png');
 			},
 			out() {
 				this.prg_logo = null;
@@ -20,10 +20,10 @@ var Editor = {
 					this.prg_logo.speed *= -1;
 				}
 
-				if (this.prg_logo.isEmpty || You.input.key.down(Input.KEY_ESCAPE)) {
-					You.scene.transit(Editor.scene.edit);
+				if (this.prg_logo.isEmpty || You.Input.key.down('Escape')) {
+					You.Scene.transit(Editor.scene.main);
 				}
-				else if (You.input.key.down()) {
+				else if (You.Input.key.down()) {
 					this.prg_logo.speed = -Math.abs(this.prg_logo.speed);
 				}
 			},
@@ -31,13 +31,14 @@ var Editor = {
 				context.save();
 
 				context.globalAlpha = this.prg_logo.rate;
-				context.drawImage(You.asset.get('logo.png').raw, You.canvas.width / 4, You.canvas.height / 4, You.canvas.width / 2, You.canvas.height / 2);
+
+				// this.logo.draw(context, You.canvas.width / 4, You.canvas.height / 4, You.canvas.width / 2, You.canvas.height / 2)
 
 				context.restore();
 			}
 		},
 
-		edit: {
+		main: {
 			in: function() {
 				this.object_data = [
 					`{"x":0,"y":0,"width":24,"height":12,"anchor":{"x":12,"y":6},"animation":{"states":[{"name":"tree","responses":{},"frames":[{"x":0,"y":0,"width":128,"height":252,"anchor":{"x":64,"y":246},"image":{"name":"tree.png"},"scale":{"x":1,"y":1},"duration":1}],"progress":{"begin":0,"end":1,"speed":1,"current":0,"rotatable":{"begin":true,"end":true},"exceed":{"begin":false,"end":false}}}]},"blockable":true}`,
@@ -46,7 +47,6 @@ var Editor = {
 
 				// generate map
 				this.map = new GameMap(new Area(0, 0, 1000, 1000));
-				print(this.map);
 				// this.map = GameMap.fromJSON(`{"x":0,"y":0,"width":2000,"height":2000,"anchor":{"x":0,"y":0},"objects":[{"x":0,"y":0,"width":24,"height":12,"anchor":{"x":12,"y":6},"animation":{"states":[{"name":"tree","responses":{},"frames":[{"x":0,"y":0,"width":128,"height":252,"anchor":{"x":64,"y":246},"image":{"name":"tree.png"},"scale":{"x":1,"y":1},"duration":1}],"progress":{"begin":0,"end":1,"speed":1,"current":0,"rotatable":{"begin":true,"end":true},"exceed":{"begin":false,"end":false}}}]},"blockable":true},{"x":30,"y":200,"width":24,"height":12,"anchor":{"x":12,"y":6},"animation":{"states":[{"name":"tree","responses":{},"frames":[{"x":0,"y":0,"width":128,"height":252,"anchor":{"x":64,"y":246},"image":{"name":"tree.png"},"scale":{"x":1,"y":1},"duration":1}],"progress":{"begin":0,"end":1,"speed":1,"current":0,"rotatable":{"begin":true,"end":true},"exceed":{"begin":false,"end":false}}}]},"blockable":true},{"x":400,"y":50,"width":24,"height":12,"anchor":{"x":12,"y":6},"animation":{"states":[{"name":"tree","responses":{},"frames":[{"x":0,"y":0,"width":128,"height":252,"anchor":{"x":64,"y":246},"image":{"name":"tree.png"},"scale":{"x":1,"y":1},"duration":1}],"progress":{"begin":0,"end":1,"speed":1,"current":0,"rotatable":{"begin":true,"end":true},"exceed":{"begin":false,"end":false}}}]},"blockable":true},{"x":500,"y":600,"width":24,"height":12,"anchor":{"x":12,"y":6},"animation":{"states":[{"name":"tree","responses":{},"frames":[{"x":0,"y":0,"width":128,"height":252,"anchor":{"x":64,"y":246},"image":{"name":"tree.png"},"scale":{"x":1,"y":1},"duration":1}],"progress":{"begin":0,"end":1,"speed":1,"current":0,"rotatable":{"begin":true,"end":true},"exceed":{"begin":false,"end":false}}}]},"blockable":true},{"x":520,"y":1380,"width":24,"height":12,"anchor":{"x":12,"y":6},"animation":{"states":[{"name":"tree","responses":{},"frames":[{"x":0,"y":0,"width":128,"height":252,"anchor":{"x":64,"y":246},"image":{"name":"tree.png"},"scale":{"x":1,"y":1},"duration":1}],"progress":{"begin":0,"end":1,"speed":1,"current":0,"rotatable":{"begin":true,"end":true},"exceed":{"begin":false,"end":false}}}]},"blockable":true},{"x":1000,"y":200,"width":24,"height":12,"anchor":{"x":12,"y":6},"animation":{"states":[{"name":"tree","responses":{},"frames":[{"x":0,"y":0,"width":128,"height":252,"anchor":{"x":64,"y":246},"image":{"name":"tree.png"},"scale":{"x":1,"y":1},"duration":1}],"progress":{"begin":0,"end":1,"speed":1,"current":0,"rotatable":{"begin":true,"end":true},"exceed":{"begin":false,"end":false}}}]},"blockable":true},{"x":1800,"y":1500,"width":24,"height":12,"anchor":{"x":12,"y":6},"animation":{"states":[{"name":"tree","responses":{},"frames":[{"x":0,"y":0,"width":128,"height":252,"anchor":{"x":64,"y":246},"image":{"name":"tree.png"},"scale":{"x":1,"y":1},"duration":1}],"progress":{"begin":0,"end":1,"speed":1,"current":0,"rotatable":{"begin":true,"end":true},"exceed":{"begin":false,"end":false}}}]},"blockable":true},{"x":720,"y":240,"width":24,"height":12,"anchor":{"x":12,"y":6},"animation":{"states":[{"name":"tree","responses":{},"frames":[{"x":0,"y":0,"width":128,"height":252,"anchor":{"x":64,"y":246},"image":{"name":"tree.png"},"scale":{"x":1,"y":1},"duration":1}],"progress":{"begin":0,"end":1,"speed":1,"current":0,"rotatable":{"begin":true,"end":true},"exceed":{"begin":false,"end":false}}}]},"blockable":true},{"x":1820,"y":320,"width":24,"height":12,"anchor":{"x":12,"y":6},"animation":{"states":[{"name":"tree","responses":{},"frames":[{"x":0,"y":0,"width":128,"height":252,"anchor":{"x":64,"y":246},"image":{"name":"tree.png"},"scale":{"x":1,"y":1},"duration":1}],"progress":{"begin":0,"end":1,"speed":1,"current":0,"rotatable":{"begin":true,"end":true},"exceed":{"begin":false,"end":false}}}]},"blockable":true},{"x":1510,"y":560,"width":24,"height":12,"anchor":{"x":12,"y":6},"animation":{"states":[{"name":"tree","responses":{},"frames":[{"x":0,"y":0,"width":128,"height":252,"anchor":{"x":64,"y":246},"image":{"name":"tree.png"},"scale":{"x":1,"y":1},"duration":1}],"progress":{"begin":0,"end":1,"speed":1,"current":0,"rotatable":{"begin":true,"end":true},"exceed":{"begin":false,"end":false}}}]},"blockable":true},{"x":710,"y":890,"width":24,"height":12,"anchor":{"x":12,"y":6},"animation":{"states":[{"name":"tree","responses":{},"frames":[{"x":0,"y":0,"width":128,"height":252,"anchor":{"x":64,"y":246},"image":{"name":"tree.png"},"scale":{"x":1,"y":1},"duration":1}],"progress":{"begin":0,"end":1,"speed":1,"current":0,"rotatable":{"begin":true,"end":true},"exceed":{"begin":false,"end":false}}}]},"blockable":true},{"x":40,"y":1040,"width":24,"height":12,"anchor":{"x":12,"y":6},"animation":{"states":[{"name":"tree","responses":{},"frames":[{"x":0,"y":0,"width":128,"height":252,"anchor":{"x":64,"y":246},"image":{"name":"tree.png"},"scale":{"x":1,"y":1},"duration":1}],"progress":{"begin":0,"end":1,"speed":1,"current":0,"rotatable":{"begin":true,"end":true},"exceed":{"begin":false,"end":false}}}]},"blockable":true},{"x":260,"y":1840,"width":24,"height":12,"anchor":{"x":12,"y":6},"animation":{"states":[{"name":"tree","responses":{},"frames":[{"x":0,"y":0,"width":128,"height":252,"anchor":{"x":64,"y":246},"image":{"name":"tree.png"},"scale":{"x":1,"y":1},"duration":1}],"progress":{"begin":0,"end":1,"speed":1,"current":0,"rotatable":{"begin":true,"end":true},"exceed":{"begin":false,"end":false}}}]},"blockable":true},{"x":750,"y":1840,"width":24,"height":12,"anchor":{"x":12,"y":6},"animation":{"states":[{"name":"tree","responses":{},"frames":[{"x":0,"y":0,"width":128,"height":252,"anchor":{"x":64,"y":246},"image":{"name":"tree.png"},"scale":{"x":1,"y":1},"duration":1}],"progress":{"begin":0,"end":1,"speed":1,"current":0,"rotatable":{"begin":true,"end":true},"exceed":{"begin":false,"end":false}}}]},"blockable":true},{"x":1070,"y":1690,"width":24,"height":12,"anchor":{"x":12,"y":6},"animation":{"states":[{"name":"tree","responses":{},"frames":[{"x":0,"y":0,"width":128,"height":252,"anchor":{"x":64,"y":246},"image":{"name":"tree.png"},"scale":{"x":1,"y":1},"duration":1}],"progress":{"begin":0,"end":1,"speed":1,"current":0,"rotatable":{"begin":true,"end":true},"exceed":{"begin":false,"end":false}}}]},"blockable":true},{"x":1290,"y":1310,"width":24,"height":12,"anchor":{"x":12,"y":6},"animation":{"states":[{"name":"tree","responses":{},"frames":[{"x":0,"y":0,"width":128,"height":252,"anchor":{"x":64,"y":246},"image":{"name":"tree.png"},"scale":{"x":1,"y":1},"duration":1}],"progress":{"begin":0,"end":1,"speed":1,"current":0,"rotatable":{"begin":true,"end":true},"exceed":{"begin":false,"end":false}}}]},"blockable":true},{"x":1810,"y":1870,"width":24,"height":12,"anchor":{"x":12,"y":6},"animation":{"states":[{"name":"tree","responses":{},"frames":[{"x":0,"y":0,"width":128,"height":252,"anchor":{"x":64,"y":246},"image":{"name":"tree.png"},"scale":{"x":1,"y":1},"duration":1}],"progress":{"begin":0,"end":1,"speed":1,"current":0,"rotatable":{"begin":true,"end":true},"exceed":{"begin":false,"end":false}}}]},"blockable":true},{"x":1790,"y":1100,"width":24,"height":12,"anchor":{"x":12,"y":6},"animation":{"states":[{"name":"tree","responses":{},"frames":[{"x":0,"y":0,"width":128,"height":252,"anchor":{"x":64,"y":246},"image":{"name":"tree.png"},"scale":{"x":1,"y":1},"duration":1}],"progress":{"begin":0,"end":1,"speed":1,"current":0,"rotatable":{"begin":true,"end":true},"exceed":{"begin":false,"end":false}}}]},"blockable":true},{"x":1660,"y":920,"width":24,"height":12,"anchor":{"x":12,"y":6},"animation":{"states":[{"name":"tree","responses":{},"frames":[{"x":0,"y":0,"width":128,"height":252,"anchor":{"x":64,"y":246},"image":{"name":"tree.png"},"scale":{"x":1,"y":1},"duration":1}],"progress":{"begin":0,"end":1,"speed":1,"current":0,"rotatable":{"begin":true,"end":true},"exceed":{"begin":false,"end":false}}}]},"blockable":true},{"x":1810,"y":700,"width":24,"height":12,"anchor":{"x":12,"y":6},"animation":{"states":[{"name":"tree","responses":{},"frames":[{"x":0,"y":0,"width":128,"height":252,"anchor":{"x":64,"y":246},"image":{"name":"tree.png"},"scale":{"x":1,"y":1},"duration":1}],"progress":{"begin":0,"end":1,"speed":1,"current":0,"rotatable":{"begin":true,"end":true},"exceed":{"begin":false,"end":false}}}]},"blockable":true},{"x":1660,"y":490,"width":24,"height":12,"anchor":{"x":12,"y":6},"animation":{"states":[{"name":"tree","responses":{},"frames":[{"x":0,"y":0,"width":128,"height":252,"anchor":{"x":64,"y":246},"image":{"name":"tree.png"},"scale":{"x":1,"y":1},"duration":1}],"progress":{"begin":0,"end":1,"speed":1,"current":0,"rotatable":{"begin":true,"end":true},"exceed":{"begin":false,"end":false}}}]},"blockable":true},{"x":1440,"y":530,"width":24,"height":12,"anchor":{"x":12,"y":6},"animation":{"states":[{"name":"tree","responses":{},"frames":[{"x":0,"y":0,"width":128,"height":252,"anchor":{"x":64,"y":246},"image":{"name":"tree.png"},"scale":{"x":1,"y":1},"duration":1}],"progress":{"begin":0,"end":1,"speed":1,"current":0,"rotatable":{"begin":true,"end":true},"exceed":{"begin":false,"end":false}}}]},"blockable":true},{"x":1630,"y":680,"width":24,"height":12,"anchor":{"x":12,"y":6},"animation":{"states":[{"name":"tree","responses":{},"frames":[{"x":0,"y":0,"width":128,"height":252,"anchor":{"x":64,"y":246},"image":{"name":"tree.png"},"scale":{"x":1,"y":1},"duration":1}],"progress":{"begin":0,"end":1,"speed":1,"current":0,"rotatable":{"begin":true,"end":true},"exceed":{"begin":false,"end":false}}}]},"blockable":true},{"x":1910,"y":220,"width":24,"height":12,"anchor":{"x":12,"y":6},"animation":{"states":[{"name":"tree","responses":{},"frames":[{"x":0,"y":0,"width":128,"height":252,"anchor":{"x":64,"y":246},"image":{"name":"tree.png"},"scale":{"x":1,"y":1},"duration":1}],"progress":{"begin":0,"end":1,"speed":1,"current":0,"rotatable":{"begin":true,"end":true},"exceed":{"begin":false,"end":false}}}]},"blockable":true},{"x":1730,"y":200,"width":24,"height":12,"anchor":{"x":12,"y":6},"animation":{"states":[{"name":"tree","responses":{},"frames":[{"x":0,"y":0,"width":128,"height":252,"anchor":{"x":64,"y":246},"image":{"name":"tree.png"},"scale":{"x":1,"y":1},"duration":1}],"progress":{"begin":0,"end":1,"speed":1,"current":0,"rotatable":{"begin":true,"end":true},"exceed":{"begin":false,"end":false}}}]},"blockable":true},{"x":1900,"y":380,"width":24,"height":12,"anchor":{"x":12,"y":6},"animation":{"states":[{"name":"tree","responses":{},"frames":[{"x":0,"y":0,"width":128,"height":252,"anchor":{"x":64,"y":246},"image":{"name":"tree.png"},"scale":{"x":1,"y":1},"duration":1}],"progress":{"begin":0,"end":1,"speed":1,"current":0,"rotatable":{"begin":true,"end":true},"exceed":{"begin":false,"end":false}}}]},"blockable":true},{"x":1000,"y":1000,"width":12,"height":6,"anchor":{"x":6,"y":3},"animation":{"states":[{"name":"stone","responses":{},"frames":[{"x":0,"y":0,"width":160,"height":128,"anchor":{"x":80,"y":110},"image":{"name":"stone.png"},"scale":{"x":0.1,"y":0.1},"duration":1}],"progress":{"begin":0,"end":1,"current":0,"rotatable":{"begin":true,"end":true},"exceed":{"begin":false,"end":false}}}]},"blockable":false}],"background":"#4a3"}`);
 
 				// view
@@ -67,7 +67,7 @@ var Editor = {
 				this.mouse = null;
 			},
 			update: function(delta) {
-				for (let m = You.input.mouse; m != null; m = You.input.mouse) {
+				for (let m = You.Input.mouse; m != null; m = You.Input.mouse) {
 					if (m[0] == 'down') {
 						if (this.tool.type == 'viewer') {
 							this.tool.info.down = new Point(m[1]);
@@ -104,17 +104,17 @@ var Editor = {
 
 				
 
-				if (You.input.key.down(Input.KEY_('O'))) {
+				if (You.Input.key.down(Input.KEY_('O'))) {
 					let data = this.object_data[0];
 					this.tool = { type: 'object', info: { sample: GameObject.fromJSON(data), data: data } };
 				}
-				else if (You.input.key.down(Input.KEY_('M'))) {
+				else if (You.Input.key.down(Input.KEY_('M'))) {
 					this.tool = { type: 'viewer', info: { down: null, up: null, prev: null } }
 				}
-				else if (You.input.key.down(Input.KEY_('S'))) {
+				else if (You.Input.key.down(Input.KEY_('S'))) {
 					print(JSON.stringify(this.map));
 				}
-				else if (You.input.key.down(Input.KEY_('R'))) {
+				else if (You.Input.key.down(Input.KEY_('R'))) {
 					// run
 				}
 
@@ -128,7 +128,7 @@ var Editor = {
 				}
 				else if (this.tool.type == 'object') {
 					for (let i = 1; i <= 9; i++) {
-						if (You.input.key.down(Input.KEY_(String(i)))) {
+						if (You.Input.key.down(Input.KEY_(String(i)))) {
 							if (this.object_data.length >= i) {
 								let data = this.object_data[i - 1];
 								this.tool.info = { sample: GameObject.fromJSON(data), data: data };
@@ -176,7 +176,7 @@ var Editor = {
 				}
 
 				context.restore();
-			},
+			}
 		},
 	}
 

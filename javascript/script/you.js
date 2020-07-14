@@ -1,271 +1,37 @@
 "use strict";
 
-
-
-class Scene {
-	constructor(scene, ...args) {
-		this.scenes = [];
-		if (scene) { this.push(scene, ...args); }
-	}
-
-	transit(scene, ...args) {
-		this.pop();
-		this.push(scene, ...args);
-	}
-
-	push(scene, ...args) {
-		scene.in(...args);
-		this.scenes.unshift(scene);
-	}
-
-	pop() {
-		if (this.scenes.length > 0) {
-			this.scenes.shift().out();
-		}
-	}
-
-	update(delta) {
-		if (this.scenes.length > 0) {
-			this.scenes[0].update(delta);
-		}
-	}
-
-	draw(context) {
-		if (this.scenes.length > 0) {
-			this.scenes[0].draw(context);
-		}
-	}
-
-	clear() {
-		while (this.scenes.length > 0) {
-			this.pop();
-		}
-	}
-
-	get current() {
-		return this.scenes[0];
-	}
-
-	get length() {
-		return this.scenes.length;
-	}
-}
-
-class Input {
-	constructor() {
-		this._temp = {
-			key: {
-				down: new Set(),
-				up: new Set()
-			},
-			mouse: []
-		};
-
-		this._key = {
-			down: new Set(),
-			press: new Set(),
-			up: new Set()
-		};
-
-		this._mouse = [];
-
-		this._keydown_handler = (e) => this.key = e.keyCode;
-		this._keyup_handler = (e) => this.key = -e.keyCode;
-		this._mousedown_handler = (e) => this.mouse = ['down', e];
-		this._mousemove_handler = (e) => this.mouse = ['move', e];
-		this._mouseup_handler = (e) => this.mouse = ['up', e];
-
-		window.addEventListener('keydown', this._keydown_handler);
-		window.addEventListener('keyup', this._keyup_handler);
-		window.addEventListener('pointerdown', this._mousedown_handler);
-		window.addEventListener('pointermove', this._mousemove_handler);
-		window.addEventListener('pointerup', this._mouseup_handler);
-	}
-
-	static get KEY_ENTER()	{ return 13; }
-	static get KEY_ESCAPE()	{ return 27; }
-	static get KEY_SPACE()	{ return 32; }
-	static get KEY_LEFT()	{ return 37; }
-	static get KEY_RIGHT()	{ return 39; }
-	static get KEY_UP()		{ return 38; }
-	static get KEY_DOWN()	{ return 40; }
-	static KEY_(keycode)	{ return keycode.charCodeAt(); }
-
-	set key(keycode) {
-		if (keycode) {
-			if (keycode > 0) {
-				if (!(this._key.down.has(keycode) || this._key.press.has(keycode))) {
-					this._temp.key.down.add(keycode);
-				}
-			}
-			else { this._temp.key.up.add(-keycode); }
-		}
-	}
-
-	get key() {
-		return {
-			down: (keycode) => (keycode) ? this._key.down.has(keycode) : this._key.down.size > 0,
-			press: (keycode) => (keycode) ? this._key.press.has(keycode) : this._key.press.size > 0,
-			up: (keycode) => (keycode) ? this._key.up.has(keycode) : this._key.up.size > 0
-		};
-	}
-
-	set mouse(event) {
-		if (event) {
-			this._temp.mouse.push(event);
-		}
-	}
-
-	get mouse() {
-		return this._mouse.shift();
-	}
-
-	update() {
-		this._key.up.clear();
-
-		for (let v of this._temp.key.up) {
-			if (this._key.press.has(v)) {
-				this._key.up.add(v);
-				this._key.press.delete(v);
-				this._temp.key.up.delete(v);
-			}
-		}
-
-		for (let v of this._key.down) {
-			this._key.press.add(v);
-		}
-		this._key.down.clear();
-
-		for (let v of this._temp.key.down) {
-			this._key.down.add(v);
-		}
-		this._temp.key.down.clear();
-
-		this._mouse = this._temp.mouse;
-		this._temp.mouse = [];
-	}
-
-	clear() {
-		this._temp.key.down.clear();
-		this._temp.key.up.clear();
-		this._key.down.clear();
-		this._key.press.clear();
-		this._key.up.clear();
-		this._temp.mouse.length = 0;
-		this._mouse.length = 0;
-	}
-}
-
-class Asset {
-
-	constructor() {
-		this.images = new Map();
-	}
-
-	add(...args) {
-		for (let images of args) {
-			if (images instanceof Array) {
-				images = images.map((v) => v.toString());
-			}
-			else if (typeof images === 'string') {
-				images = [images];
-			}
-			
-			for (let i of images) {
-				if (this.images.has(i)) {
-					continue;
-				}
-
-				let image = {
-					name: i,
-					raw: new Image(),
-					loaded: false,
-					toJSON: () => ({ name: i })
-				};
-
-				image.raw.onload = () => { image.loaded = true; };
-				image.raw.src = 'image/' + i;
-				this.images.set(i, image);
-			}
-		}
-	}
-
-	remove(...args) {
-		if (args.length == 0) { return; }
-
-		for (let images of args) {
-			if(images instanceof Array) {
-				images = images.map((v) => v.toString());
-			}
-			else if(typeof images === 'string') {
-				images = [images];
-			}
-			for (let i of images) {
-				this.images.delete(i);
-			}
-		}
-	}
-
-	get(...args) {
-		if (args.length == 0) { return null; }
-
-		this.add(...args);
-
-		if (args.length == 1) {
-			return this.images.get(args[0]);
-		}
-		else {
-			return args.map((images) => {
-				if (images instanceof Array) { images.map((v) => this.images.get(v.toString())); }
-				else if(typeof images === 'string') { this.images.get(images); }
-			});
-		}
-	}
-
-}
-
 var You = {
-	time_last: null,
-
-	canvas: null,
-	context: null,
-	input: null,
-	scene: null,
-
-
-	loop: function () {
+	loop() {
 		let time_now = Date.now();
 
-		// Input
-		this.input.update();
+
 		You.Input.update();
 
 		let delta = (time_now - this.time_last) / 1000;
 
-		// Animation
 		You.Animation.update(delta);
 
-		// Update
-		this.scene.update(delta);
+		You.Scene.update(delta);
 
-		// Draw
+
 		this.buffer.save();
 
 		this.buffer.fillStyle = 'black';
 		this.buffer.fillRect(0, 0, this.buffer.canvas.width, this.buffer.canvas.height);
 
-		this.scene.draw(this.buffer);
+		You.Scene.draw(this.buffer);
 
 		this.context.drawImage(this.buffer.canvas, 0, 0);
 
 		this.buffer.restore();
+
 
 		this.time_last = time_now;
 
 		this.display_handler = window.requestAFrame(() => this.loop());
 	},
 
-	in: function (scene) {
+	in(scene, ...args) {
 		this.canvas = document.getElementById("canvas");
 		this.context = this.canvas.getContext("2d");
 
@@ -286,12 +52,9 @@ var You = {
 		this.resize_handler()
 
 
-		this.input = new Input();
 		You.Input.in();
-
-		this.asset = new Asset();
 		
-		this.scene = new Scene(scene);
+		You.Scene.in(scene, ...args);
 
 		
 		this.time_last = Date.now();
@@ -299,25 +62,37 @@ var You = {
 		this.display_handler = window.requestAFrame(() => this.loop());
 	},
 
-	out: function () {
+	out() {
 		window.cancelAFrame(this.display_handler);
 		this.display_handler = null;
 
 		this.time_last = 0;
 
-		this.scene.clear();
-		this.scene = null;
 
-		this.input.clear();
-		this.input = null;
+		You.Scene.clear();
+
+		You.Input.clear();
+
 
 		window.removeEventListener('resize', this.resize_handler);
 	},
 };
 
-You.fromJSON = function (data) {
+
+You.Data = {};
+You.Data.toJSON = function (instance) {
+	if (instance == undefined || instance == null) {
+		instance = {};
+	}
+
+	return {
+		'@class': instance.constructor.name,
+		...instance
+	}
+}
+You.Data.fromJSON = function (data) {
 	if (data instanceof Array) {
-		return data.map((d) => You.fromJSON(d));
+		return data.map((d) => You.Data.fromJSON(d));
 	}
 	else if (data instanceof Object) {
 		if (data.hasOwnProperty('@class')) {
@@ -327,10 +102,10 @@ You.fromJSON = function (data) {
 					.fromJSON(data);
 		}
 		else {
-			// return Object.key(data).reduce((acc, key) => acc[key] = You.fromJSON(data[key]), {});
+			// return Object.key(data).reduce((acc, key) => acc[key] = You.Data.fromJSON(data[key]), {});
 
 			for (let p in data) {
-				data[p] = You.fromJSON(data[p]);
+				data[p] = You.Data.fromJSON(data[p]);
 			}
 
 			return data;
@@ -467,7 +242,7 @@ You.Input = class {
 				this.#tkey.down.add(keycode);
 			}
 
-			// console.log(e.key);
+			console.log(e.key);
 		});
 
 		window.addEventListener('keyup', (e) => {
@@ -562,6 +337,111 @@ You.Asset = class {
 
 	static clear() {
 		window.localStorage.clear();
+	}
+};
+
+You.Asset.Image = class {
+	
+	static #data = new Map();
+	static #refCount = new Map();
+
+	static load(file) {
+		if (this.#data.has(file)) {
+			this.#refCount.set(file, this.#refCount.get(file) + 1);
+
+			return this.#data.get(file);
+		}
+		else {
+			let image = new You.Graphics.Image(file);
+
+			if (image.loaded != null) {
+				this.#data.set(file, image);
+				this.#refCount.set(file, 1);
+			}
+
+			return image;
+		}
+	}
+
+	static unload(file) {
+		if (this.#data.has(file)) {
+			this.#refCount.set(file, this.#refCount.get(file) - 1);
+
+			if (this.#refCount.get(file) == 0) {
+				this.#refCount.delete(file);
+
+				this.#data.delete(file);
+			}
+		}
+	}
+};
+
+You.Asset.Image.Loader = class {
+	
+	#images = [];
+
+	load(...args) {
+		args.forEach((e) => this.#images.push(new You.Asset.Image.load(e)));
+
+		return this;
+	}
+
+	unload() {
+		this.#images.forEach((e) => You.Asset.Image.unload(e.file));
+
+		return this;
+	}
+
+	get rate() {
+		return this.#images.filter((e) => e.loaded).length / this.#images.length;
+	}
+
+	get loaded() {
+		return this.#images.every((e) => e.loaded);
+	}
+};
+
+You.Scene = class {
+
+	static scenes = [];
+
+	static in(scene, ...args) {
+		this.scenes = [];
+		if (scene) { this.push(scene, ...args); }
+	}
+
+	static transit(scene, ...args) {
+		this.pop();
+		this.push(scene, ...args);
+	}
+
+	static push(scene, ...args) {
+		scene.in(...args);
+		this.scenes.unshift(scene);
+	}
+
+	static pop() {
+		if (this.scenes.length > 0) {
+			this.scenes.shift().out();
+		}
+	}
+
+	static update(delta) {
+		if (this.scenes.length > 0) {
+			this.scenes[0].update(delta);
+		}
+	}
+
+	static draw(context) {
+		if (this.scenes.length > 0) {
+			this.scenes[0].draw(context);
+		}
+	}
+
+	static clear() {
+		while (this.scenes.length > 0) {
+			this.pop();
+		}
 	}
 };
 
@@ -761,17 +641,17 @@ You.Object = class You_Object {
 		};
 	}
 
-	static fromJSON(object) {
+	static fromJSON(data) {
 		let instance = new this();
 
-		delete object['@class']
+		delete data['@class'];
 
-		for (let prop in object) {
+		for (let prop in data) {
 			if (prop == 'components') {
-				instance.addComponents(...You.fromJSON(object[prop]));
+				instance.addComponents(...You.Data.fromJSON(data[prop]));
 			}
 			else {
-				instance[prop] = You.fromJSON(object[prop]);
+				instance[prop] = You.Data.fromJSON(data[prop]);
 			}
 		}
 
@@ -1302,7 +1182,7 @@ You.ScrollPanel = class extends You.Panel {
 
 		return this;
 	}
-}
+};
 
 You.Text = class extends You.Area {
 
@@ -1323,13 +1203,22 @@ You.Text = class extends You.Area {
 		this.#textHeight = 0;
 	}
 
-	onDraw(context) {
+	draw(context, ...args) {
 		context.save();
 
 		if (this.backgroundColor) {
 			context.fillStyle = this.backgroundColor;
 			context.fillRect(...this.position, ...this.size);
 		}
+
+		this.onDraw(context, ...args);
+		this.components.forEach((c) => c.draw(context, ...args));
+
+		context.restore();
+	}
+
+	onDraw(context) {
+		context.save();
 
 		if (this.text) {
 			context.font = this.font;
@@ -1522,5 +1411,58 @@ You.Graphics.Area = class {
 
 	intersects(area) {
 
+	}
+};
+
+You.Graphics.Image = class You_Graphics_Image {
+
+	#loaded = false;
+
+	constructor(file) {
+		this.file = file;
+
+		Object.defineProperty(this, 'raw', {
+			value: new Image(),
+			writable: true
+		});
+
+		this.raw.onload = () => {
+			this.#loaded = true;
+		}
+
+		this.raw.onerror = () => {
+			this.#loaded = null;
+		}
+
+		this.raw.src = 'image/' + file;
+	}
+
+	draw(context, ...args) {
+		if (this.raw && this.#loaded) {
+			context.drawImage(this.raw, ...args);
+		}
+	}
+
+	get loaded() {
+		return this.#loaded;
+	}
+
+	get width() {
+		return this.#loaded ? this.raw.naturalWidth : null;
+	}
+
+	get height() {
+		return this.#loaded ? this.raw.naturalHeight : null;
+	}
+
+	toJSON() {
+		return {
+			'@class': this.constructor.name,
+			...this
+		}
+	}
+
+	static fromJSON(object) {
+		return You.Asset.Image.load(object.file);
 	}
 };

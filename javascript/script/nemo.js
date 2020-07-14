@@ -59,6 +59,8 @@ var Nemo = {
 		title: {
 			in() {
 				this.prgMessage = new Progress(2, 8, 10, 2, { begin: false, end: false });
+
+				this.logo = You.Asset.Image.load('logo.png');
 			},
 
 			out() {
@@ -70,19 +72,18 @@ var Nemo = {
 
 				if (this.prgMessage.isEmpty || this.prgMessage.isFull) { this.prgMessage.speed *= -1; }
 
-				if (You.input.key.down(Input.KEY_ENTER)) {
-					You.scene.transit(Nemo.scene.character);
+				if (You.Input.key.down('Enter')) {
+					You.Scene.transit(Nemo.scene.character);
 				}
 			},
 
 			draw(context) {
 				context.save();
 
+				this.logo.draw(context, 10, 10, You.canvas.width / 30, You.canvas.height / 30);
+
 				context.globalAlpha = 1;
 				context.fillStyle = "#fff";
-
-				context.drawImage(You.asset.get('logo.png').raw, 10, 10, You.canvas.width / 30, You.canvas.height / 30);
-
 				context.font = "24px Arial";
 				context.textAlign = "center";
             	context.textBaseline = "middle";
@@ -120,7 +121,7 @@ var Nemo = {
 								.setBackgroundColor('rgba(255, 255, 255, 0.1)');
 
 					button.addHandler(() => {
-						You.scene.transit(Nemo.scene.main, i);
+						You.Scene.transit(Nemo.scene.main, i);
 					});
 
 					this.panel.addComponents(button);
@@ -228,11 +229,11 @@ var Nemo = {
 				});
 
 				this.buttons.menu.game.addHandler(() => {
-					You.scene.transit(Nemo.scene.game);
+					You.Scene.transit(Nemo.scene.game);
 				});
 
 				this.buttons.menu.exit.addHandler(() => {
-					You.scene.transit(Nemo.scene.title);
+					You.Scene.transit(Nemo.scene.title);
 				});
 
 				this.buttons.upgrade.size.addHandler(() => {
@@ -354,9 +355,9 @@ var Nemo = {
 
 				if (this.prgMessage.isEmpty || this.prgMessage.isFull) { this.prgMessage.speed *= -1; }
 
-				if (You.input.key.down(Input.KEY_ENTER)) {
+				if (You.Input.key.down('Enter')) {
 					if (this.prgTitle.isFull) {
-						You.scene.transit(Nemo.scene.main);
+						You.Scene.transit(Nemo.scene.main);
 						return;
 					}
 				}
@@ -510,7 +511,7 @@ Nemo.StatsState = class extends You.State {
 	onUpdate(delta) {
 		let scene = this.scene;
 
-		let mouse_event = You.input.mouse;
+		let mouse_event = You.Input.mouse;
 		if (mouse_event) {
 			if (mouse_event[0] == 'up') {
 				let rect = You.canvas.getBoundingClientRect();
@@ -562,7 +563,7 @@ Nemo.UpgradeState = class extends You.State {
 	onUpdate(delta) {
 		let scene = this.scene;
 
-		let mouse_event = You.input.mouse;
+		let mouse_event = You.Input.mouse;
 		if (mouse_event) {
 			if (mouse_event[0] == 'up') {
 				let rect = You.canvas.getBoundingClientRect();
@@ -607,20 +608,20 @@ Nemo.GameState = class extends You.State {
 	onUpdate(delta) {
 		let scene = this.scene
 
-		if (You.input.key.down(Input.KEY_ESCAPE)) {
+		if (You.Input.key.down('Escape')) {
 			this.transit('menu state');
 		}
 
-		if (You.input.key.press(Input.KEY_LEFT)) {
+		if (You.Input.key.press('ArrowLeft')) {
 			scene.character.transform.position[0] -= scene.character.speed * delta;
 		}
-		else if (You.input.key.press(Input.KEY_RIGHT)) {
+		else if (You.Input.key.press('ArrowRight')) {
 			scene.character.transform.position[0] += scene.character.speed * delta;
 		}
-		if (You.input.key.press(Input.KEY_UP)) {
+		if (You.Input.key.press('ArrowUp')) {
 			scene.character.transform.position[1] -= scene.character.speed * delta;
 		}
-		else if (You.input.key.press(Input.KEY_DOWN)) {
+		else if (You.Input.key.press('ArrowDown')) {
 			scene.character.transform.position[1] += scene.character.speed * delta;
 		}
 
@@ -646,13 +647,13 @@ Nemo.GameState = class extends You.State {
 
 					if (You.canvas.width * You.canvas.height < scene.character.getArea()) {
 						// Game Clear
-						You.scene.transit(Nemo.scene.game_over, scene.score, "Game Clear");
+						You.Scene.transit(Nemo.scene.game_over, scene.score, "Game Clear");
 						return;
 					}
 				}
 				else {
 					// Game Over
-					You.scene.transit(Nemo.scene.game_over, scene.score, "Game Over");
+					You.Scene.transit(Nemo.scene.game_over, scene.score, "Game Over");
 					return;
 				}
 			}
@@ -700,7 +701,7 @@ Nemo.MenuState = class extends You.State {
 	}
 
 	onUpdate(delta) {
-		if (You.input.key.down(Input.KEY_ESCAPE)) {
+		if (You.Input.key.down('Escape')) {
 			this.transit('game state');
 		}
 	}

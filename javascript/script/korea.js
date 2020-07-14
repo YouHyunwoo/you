@@ -70,8 +70,8 @@ var Korea = {
 				// 5. 테스트 몬스터 생성: Stats
 				// 6. 캐릭터 근접 공격, 주문: Animator
 				// 7. 몬스터 AI: AI, You.dispose, You.onCreate
-				// 8. 맵 저장
-				// 9. 캐릭터 저장
+				// 8. 맵 저장: You.Data
+				// 9. 캐릭터 저장: toJSON, fromJSON
 				// 10. 오브젝트 저장
 				// (에디터 만들기: 맵, 오브젝트, )
 				// 11. 실제 맵 기획, 생성
@@ -80,30 +80,67 @@ var Korea = {
 
 				let sprites = {
 					tree: new Korea.Graphics.Sprite()
-							.setSheet(Korea.Asset.Image.load('tree.png'))
+							.setSheet(You.Asset.Image.load('tree.png'))
 							.setAnchor([0.5, 0.95])
 							.setScale([0.5, 0.5]),
 					logo: new Korea.Graphics.Sprite()
-							.setSheet(Korea.Asset.Image.load('logo.png'))
+							.setSheet(You.Asset.Image.load('logo.png'))
 							.setAnchor([0.5, 0.5])
 							.setScale([0.15, 0.25]),
 					stone: new Korea.Graphics.Sprite()
-							.setSheet(Korea.Asset.Image.load('stone.png'))
+							.setSheet(You.Asset.Image.load('stone.png'))
 							.setAnchor([0.5, 0.5])
 							.setScale([0.3, 0.3]),
+					building: new Korea.Graphics.Sprite()
+							.setSheet(You.Asset.Image.load('buildings.png'))
+							.setAnchor([0.5, 0.8])
+							.setScale([5, 5]),
+					tree0: new Korea.Graphics.Sprite()
+							.setSheet(You.Asset.Image.load('trees.png'))
+							.setSource([0, 0, 64, 64])
+							.setAnchor([0.5, 0.8])
+							.setScale([5, 5]),
+					tree1: new Korea.Graphics.Sprite()
+							.setSheet(You.Asset.Image.load('trees.png'))
+							.setSource([65, 0, 63, 64])
+							.setAnchor([0.5, 0.8])
+							.setScale([8, 8]),
+					squirrel_idle: new Korea.Graphics.Sprite()
+							.setSheet(You.Asset.Image.load('다람쥐.png'))
+							.setSource([0, 0, 48, 32])
+							.setAnchor([0.5, 0.8])
+							.setScale([1, 1]),
+					squirrel_move: new Korea.Graphics.Sprite()
+							.setSheet(You.Asset.Image.load('다람쥐.png'))
+							.setSource([0, 32, 48, 32])
+							.setAnchor([0.5, 0.8])
+							.setScale([1, 1]),
 				};
 
 				// 1. 테스트 맵 생성
 				this.map = new Korea.Map('map')
 							.setPosition([50, 50])
-							.setSize([600, 600])
-							.setColor('rgba(255, 255, 255, 0.2)')
+							.setSize([2000, 2000])
+							.setColor('rgba(120, 100, 70, 1)')
 							.addComponents(
 								new Korea.ObjectArrangement('object arrangement')
 							);
 
+				this.buildings = [];
+				let building = new Korea.GameObject('building' + 0)
+								.addTags('building')
+								.setPosition([500, 500])
+								.setSize([50, 50])
+								.setAnchor([0.5, 0.5])
+								.addComponents(
+									new Korea.SpriteRenderer('sprite renderer')
+										.setSprite(sprites.building)
+								);
+				this.buildings.push(building);
+				this.map.addComponents(building);
+
 				this.trees = [];
-				for (let i = 0; i < 2; i++) {
+				for (let i = 0; i < 4; i++) {
 					let tree = new Korea.GameObject('tree' + i)
 							.addTags('object')
 							.setPosition([Math.random() * this.map.width, Math.random() * this.map.height])
@@ -111,7 +148,7 @@ var Korea = {
 							.setAnchor([0.5, 0.5])
 							.addComponents(
 								new Korea.SpriteRenderer('sprite renderer')
-									.setSprite(sprites.tree)
+									.setSprite(sprites['tree' + parseInt(Math.random() * 2)])
 							);
 
 					this.trees.push(tree);
@@ -174,6 +211,7 @@ var Korea = {
 										new Korea.Moveable('moveable').setSpeed(150),
 										new Korea.Player.Attack('player attack'),
 										new Korea.Player.Move('player move'),
+										new Korea.Camera('camera')
 									);
 
 				this.map.addComponents(this.character);
@@ -205,11 +243,69 @@ var Korea = {
 
 				this.map.addComponents(this.monster);
 
-				// 8. 맵 저장
-				let json = JSON.stringify(this.map, null, 4);
+				this.squirrel = new Korea.GameObject('squirrel')
+								.addTags('character')
+								.setPosition([200, 200])
+								.setSize([50, 50])
+								.setAnchor([14, 22])
+								.addComponents(
+									new Korea.SpriteRenderer('sprite renderer')
+										.setSprite(
+											sprites.squirrel_idle
+										),
+									new Korea.Stats('stats')
+										.setStats('hp', 3)
+										.setStats('maxhp', 3)
+										.setStats('mp', 0)
+										.setStats('ap', 1)
+										.setStats('dp', 0),
+									new Korea.HPRepresenter('hp representer'),
+									new Korea.Moveable('moveable').setSpeed(100),
+									new Korea.AI('ai')
+										.setSight(200)
+										.setAggressivePoint(-0.01),
+									new You.State.Context('animator')
+										.addComponents(
+											new Korea.Graphics.Animation('idle')
+												.addFrames(
+													new Korea.Graphics.Frame()
+														.setTime(0)
+														.setDuration(1)
+														.setActions(new Korea.Event.Action(
+															'change sprite',
+															sprites.squirrel_idle
+														))
+												),
+											new Korea.Graphics.Animation('attack')
+												.addFrames(
+													new Korea.Graphics.Frame()
+														.setTime(0)
+														.setDuration(0.5)
+														.setActions(new Korea.Event.Action(
+															'change sprite',
+															sprites.tree
+														)),
+													new Korea.Graphics.Frame()
+														.setTime(0.5)
+														.setDuration(0.1)
+														.setActions(
+															new Korea.Event.Action('animation play', 0),
+															new Korea.Event.Action('animation transit', 'idle'),
+														)
+												)
+										),
+									new Korea.Event()
+										.addConditions((delta, object) => object.name == "squirrel")
+										.addActions((delta, object) => console.log(object.name))
+								)
 
-				console.dir(json);
-				this.map = You.Object.fromJSON(JSON.parse(json));
+				this.map.addComponents(this.squirrel);
+
+				// 8. 맵 저장
+				// let json = JSON.stringify(this.map, null, 4);
+
+				// console.log(json);
+				// this.map = You.Data.fromJSON(JSON.parse(json));
 			},
 
 			out() {
@@ -431,7 +527,7 @@ Korea.AI = class Korea_AI extends You.Object {
 
 		this.target = null;
 
-		this.aggressiveImage = Korea.Asset.Image.load('youtube.png');
+		this.aggressiveImage = You.Asset.Image.load('youtube.png');
 	}
 
 	onUpdate(delta) {
@@ -496,7 +592,6 @@ Korea.AI = class Korea_AI extends You.Object {
 						this.target.stats.hp -= this.parent.stats.ap - this.target.stats.dp;
 						this.attackProgress.current = 0;
 					}
-					// if (Korea.debug) console.log(this.attackProgress.rate)
 				}
 
 				this.parent.moveable.destination = null;
@@ -561,122 +656,7 @@ Korea.AI = class Korea_AI extends You.Object {
 	}
 };
 
-Korea.Asset = {};
-Korea.Asset.Image = class {
-	
-	static #data = new Map();
-	static #refCount = new Map();
-
-	static load(file) {
-		if (this.#data.has(file)) {
-			this.#refCount.set(file, this.#refCount.get(file) + 1);
-
-			return this.#data.get(file);
-		}
-		else {
-			let image = new Korea.Graphics.Image(file);
-
-			if (image.loaded != null) {
-				this.#data.set(file, image);
-				this.#refCount.set(file, 1);
-			}
-
-			return image;
-		}
-	}
-
-	static unload(file) {
-		if (this.#data.has(file)) {
-			this.#refCount.set(file, this.#refCount.get(file) - 1);
-
-			if (this.#refCount.get(file) == 0) {
-				this.#refCount.delete(file);
-
-				this.#data.delete(file);
-			}
-		}
-	}
-};
-
-Korea.Asset.Image.Loader = class {
-	
-	#images = [];
-
-	load(...args) {
-		args.forEach((e) => this.#images.push(new Korea.Asset.Image.load(e)));
-
-		return this;
-	}
-
-	unload() {
-		this.#images.forEach((e) => Korea.Asset.Image.unload(e.file));
-
-		return this;
-	}
-
-	get rate() {
-		return this.#images.filter((e) => e.loaded).length / this.#images.length;
-	}
-
-	get loaded() {
-		return this.#images.every((e) => e.loaded);
-	}
-};
-
 Korea.Graphics = {};
-Korea.Graphics.Image = class Korea_Graphics_Image {
-
-	#loaded = false;
-
-	constructor(file) {
-		this.file = file;
-
-		Object.defineProperty(this, 'raw', {
-			value: new Image(),
-			writable: true
-		});
-
-		this.raw.onload = () => {
-			this.#loaded = true;
-		}
-
-		this.raw.onerror = () => {
-			this.#loaded = null;
-		}
-
-		this.raw.src = 'image/' + file;
-	}
-
-	draw(context, ...args) {
-		if (this.raw && this.#loaded) {
-			context.drawImage(this.raw, ...args);
-		}
-	}
-
-	get loaded() {
-		return this.#loaded;
-	}
-
-	get width() {
-		return this.#loaded ? this.raw.naturalWidth : null;
-	}
-
-	get height() {
-		return this.#loaded ? this.raw.naturalHeight : null;
-	}
-
-	toJSON() {
-		return {
-			'@class': this.constructor.name,
-			...this
-		}
-	}
-
-	static fromJSON(object) {
-		return Korea.Asset.Image.load(object.file);
-	}
-};
-
 Korea.Graphics.Sprite = class Korea_Graphics_Sprite {
 	constructor() {
 		this.sheet = null;
@@ -701,7 +681,6 @@ Korea.Graphics.Sprite = class Korea_Graphics_Sprite {
 
 		if (this.sheet && this.sheet.loaded) {
 			let [w, h] = [this.swidth || this.sheet.width, this.sheight || this.sheet.height];
-
 			this.sheet.draw(context, this.sx, this.sy, w, h, x - w * this.anchor[0] * this.scale[0], y - h * this.anchor[1] * this.scale[1], w * this.scale[0], h * this.scale[1]);
 		}
 	}
@@ -743,18 +722,7 @@ Korea.Graphics.Sprite = class Korea_Graphics_Sprite {
 		return this;
 	}
 
-	toJSON() {
-		return {
-			'@class': this.constructor.name,
-			sheet: this.sheet,
-			sx: this.sx,
-			sy: this.sy,
-			swidth: this.swidth,
-			sheight: this.sheight,
-			anchor: this.anchor,
-			scale: this.scale
-		};
-	}
+	toJSON = () => You.Data.toJSON(this);
 
 	static fromJSON(object) {
 		let sprite = new this();
@@ -762,7 +730,7 @@ Korea.Graphics.Sprite = class Korea_Graphics_Sprite {
 		delete object['@class'];
 
 		for (let p in object) {
-			sprite[p] = You.fromJSON(object[p]);
+			sprite[p] = You.Data.fromJSON(object[p]);
 		}
 
 		return sprite;
@@ -770,7 +738,6 @@ Korea.Graphics.Sprite = class Korea_Graphics_Sprite {
 };
 
 Korea.Graphics.Frame = class Korea_Graphics_Frame {
-
 	constructor() {
 		this.actions = [];
 		this.time = 0;
@@ -801,15 +768,74 @@ Korea.Graphics.Frame = class Korea_Graphics_Frame {
 		return this;
 	}
 
+	toJSON = () => You.Data.toJSON(this);
+
 	static fromJSON(object) {
 		return new this()
-				.setActions(...object.actions.map((action) => You.fromJSON(action)))
+				.setActions(...object.actions.map((action) => You.Data.fromJSON(action)))
 				.setTime(object.time)
 				.setDuration(object.duration);
 	}
 };
 
-Korea.Event = {};
+Korea.Event = class extends You.Object {
+	constructor(name) {
+		super(name);
+
+		this.conditions = [];
+		this.actions = [];
+	}
+
+	onUpdate(delta) {
+		if (this.conditions.every((condition) => condition(delta, this.parent))) {
+			this.actions.forEach(action => action(delta, this.parent));
+		}
+	}
+
+	addConditions(...args) {
+		for (let arg of args) {
+			this.conditions.push(arg);
+		}
+
+		return this;
+	}
+
+	addActions(...args) {
+		for (let arg of args) {
+			this.actions.push(arg);
+		}
+
+		return this;
+	}
+
+	toJSON() {
+		return {
+			'@class': this.constructor.name,
+			conditions: this.conditions.map((condition) => condition.toString()),
+			actions: this.actions.map((action) => action.toString()),
+		};
+	}
+
+	static fromJSON(data) {
+		let instance = new this();
+
+		instance.conditions = data.conditions.map((e) => eval(e));
+		instance.actions = data.actions.map((e) => eval(e));
+
+		return instance;
+	}
+};
+
+Korea.Event.Condition = class Korea_Event_Condition {
+	condition;
+
+	check(delta, object) {
+		return eval(condition);
+	}
+
+
+};
+
 Korea.Event.Action = class Korea_Event_Action {
 	constructor(name, ...args) {
 		this.name = name;
@@ -817,9 +843,7 @@ Korea.Event.Action = class Korea_Event_Action {
 	}
 
 	run(delta, object) {
-		// console.log(this.name)
 		if (this.name == 'change sprite') {
-			// console.log('change sprite')
 			object['sprite renderer'].sprite = this.args[0];
 		}
 		else if (this.name == 'animation play') {
@@ -830,17 +854,12 @@ Korea.Event.Action = class Korea_Event_Action {
 		}
 	}
 
-	toJSON() {
-		return {
-			'@class': this.constructor.name,
-			...this
-		};
-	}
+	toJSON = () => You.Data.toJSON(this);
 
 	static fromJSON(object) {
-		return new this(object.name, ...You.fromJSON(object.args));
+		return new this(object.name, ...You.Data.fromJSON(object.args));
 	}
-}
+};
 
 Korea.Graphics.Animation = class Korea_Graphics_Animation extends You.State {
 
@@ -898,25 +917,24 @@ Korea.Graphics.Animation = class Korea_Graphics_Animation extends You.State {
 		return this;
 	}
 
-	toJSON() {
-		return {
-			'@class': this.constructor.name,
-			...this,
-			playing: this.#playing,
-			frames: this.#frames,
-			progress: this.#progress
-		}
-	}
+	toJSON = () => ({
+		'@class': this.constructor.name,
+		...this,
+		playing: this.#playing,
+		frames: this.#frames,
+		progress: this.#progress.current,
+		speed: this.#progress.speed
+	});
 
 	static fromJSON(object) {
-		let instance = new (object['@class'].match(/[A-Z][^_]*/g).reduce((acc, cur) => acc[cur], window))(object.name);
+		let instance = new this(object.name);
 
-		instance.addFrames(...object.frames.map((frame) => Korea.Graphics.Frame.fromJSON(frame)));
-		instance.play(object.progress.current);
+		instance.addFrames(...object.frames.map((frame) => You.Data.fromJSON(frame)));
+		instance.play(object.progress);
 		if (!object.playing) {
 			instance.pause();
 		}
-		instance.setSpeed(object.progress.speed);
+		instance.setSpeed(object.speed);
 
 		return instance;
 	}
@@ -942,6 +960,8 @@ Korea.Player.Move = class Korea_Player_Move extends You.Object {
 			this.parent.transform.position[1] -= this.parent.moveable.speed * delta;
 		}
 	}
+
+	toJSON = () => ({ '@class': this.constructor.name });
 };
 
 Korea.Player.Attack = class Korea_Player_Attack extends You.Object {
@@ -981,5 +1001,26 @@ Korea.Player.Attack = class Korea_Player_Attack extends You.Object {
 				}
 			}
 		}
+	}
+
+	toJSON = () => ({ '@class': this.constructor.name });
+};
+
+Korea.Camera = class Korea_Camera extends You.Object {
+
+	#container = null;
+	#target = null;
+
+	// size = null;
+
+	onAdded(parent) {
+		this.#target = parent;
+	}
+
+	onUpdate(delta) {
+		let container = this.#target.parent;
+		let [sw, sh] = [You.canvas.width, You.canvas.height];
+		container.position[0] = sw / 2 - this.#target.transform.position[0];
+		container.position[1] = sh / 2 - this.#target.transform.position[1];
 	}
 };
