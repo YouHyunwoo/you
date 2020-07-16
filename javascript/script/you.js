@@ -78,7 +78,6 @@ var You = {
 	},
 };
 
-
 You.Data = {};
 You.Data.toJSON = function (instance) {
 	if (instance == undefined || instance == null) {
@@ -442,6 +441,39 @@ You.Scene = class {
 		while (this.scenes.length > 0) {
 			this.pop();
 		}
+	}
+
+	images = [];
+	sprites = [];
+	objects = [];
+
+	in(...args) {}
+	out() {}
+	update(delta, ...args) {}
+	draw(context, ...args) {}
+
+	toJSON() {
+		// images, sprites, objects
+		// images
+		let images = this.images;
+
+		let sprites = this.sprites;
+
+		return {
+			images: images,
+			sprites: sprites,
+			objects: objects
+		};
+	}
+
+	static fromJSON(data) {
+		let instance = new this();
+
+		instance.images = data.images.map((e) => You.Asset.Image(e));
+
+		instance.sprites = data.sprites.map((e) => Korea.Graphics.Sprite());
+
+		return instance;
 	}
 };
 
