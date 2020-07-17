@@ -311,6 +311,16 @@ var Korea = {
 	},
 };
 
+Korea.Scene = {};
+Korea.Scene.Test = class Korea_Scene_Test extends You.Scene {
+	in() {
+		this.images.push(You.Asset.Image.load('image/logo.png', 'image1'));
+		let data = JSON.stringify(this, null, 4);
+		console.log(data);
+		console.log(You.Data.fromJSON(JSON.parse(data)));
+	}
+}
+
 Korea.Map = class Korea_Map extends You.Panel {
 	constructor(name) {
 		super(name);

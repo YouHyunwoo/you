@@ -89,22 +89,22 @@ You.Data.toJSON = function (instance) {
 		...instance
 	}
 }
-You.Data.fromJSON = function (data) {
+You.Data.fromJSON = function (data, refers={}) {
 	if (data instanceof Array) {
-		return data.map((d) => You.Data.fromJSON(d));
+		return data.map((d) => You.Data.fromJSON(d, refers));
 	}
 	else if (data instanceof Object) {
 		if (data.hasOwnProperty('@class')) {
 			return data['@class']
 					.match(/[A-Z][^_]*/g)
 					.reduce((acc, cur) => acc[cur], window)
-					.fromJSON(data);
+					.fromJSON(data, refers);
 		}
 		else {
 			// return Object.key(data).reduce((acc, key) => acc[key] = You.Data.fromJSON(data[key]), {});
 
 			for (let p in data) {
-				data[p] = You.Data.fromJSON(data[p]);
+				data[p] = You.Data.fromJSON(data[p], refers);
 			}
 
 			return data;
@@ -344,14 +344,14 @@ You.Asset.Image = class {
 	static #data = new Map();
 	static #refCount = new Map();
 
-	static load(file) {
+	static load(file, id=null) {
 		if (this.#data.has(file)) {
 			this.#refCount.set(file, this.#refCount.get(file) + 1);
 
 			return this.#data.get(file);
 		}
 		else {
-			let image = new You.Graphics.Image(file);
+			let image = new You.Graphics.Image2(id, file);
 
 			if (image.loaded != null) {
 				this.#data.set(file, image);
@@ -452,26 +452,19 @@ You.Scene = class {
 	update(delta, ...args) {}
 	draw(context, ...args) {}
 
-	toJSON() {
-		// images, sprites, objects
-		// images
-		let images = this.images;
-
-		let sprites = this.sprites;
-
+	toJSON(refers={}) {
 		return {
-			images: images,
-			sprites: sprites,
-			objects: objects
+			'@class': this.constructor.name,
+			...this
 		};
 	}
 
-	static fromJSON(data) {
+	static fromJSON(data, refers={}) {
 		let instance = new this();
 
-		instance.images = data.images.map((e) => You.Asset.Image(e));
-
-		instance.sprites = data.sprites.map((e) => Korea.Graphics.Sprite());
+		instance.images = data.images.map((e) => You.Data.fromJSON(e, refers));
+		instance.sprites = data.sprites.map((e) => You.Data.fromJSON(e, refers));
+		instance.objects = data.objects.map((e) => You.Data.fromJSON(e, refers));
 
 		return instance;
 	}
@@ -1496,5 +1489,72 @@ You.Graphics.Image = class You_Graphics_Image {
 
 	static fromJSON(object) {
 		return You.Asset.Image.load(object.file);
+	}
+};
+
+You.Graphics.Image2 = class You_Graphics_Image2 {
+
+	#loaded = false;
+
+	constructor(id, file) {
+		Object.defineProperty(this, 'id', {
+			enumerable: true,
+			value: id,
+		});
+
+		this.file = file;
+
+		Object.defineProperty(this, 'raw', {
+			value: new Image(),
+			writable: true
+		});
+
+		this.raw.onload = () => {
+			this.#loaded = true;
+		}
+
+		this.raw.onerror = () => {
+			this.#loaded = null;
+		}
+
+		this.raw.src = file;
+	}
+
+	draw(context, ...args) {
+		if (this.raw && this.#loaded) {
+			context.drawImage(this.raw, ...args);
+		}
+	}
+
+	get loaded() {
+		return this.#loaded;
+	}
+
+	get width() {
+		return this.#loaded ? this.raw.naturalWidth : null;
+	}
+
+	get height() {
+		return this.#loaded ? this.raw.naturalHeight : null;
+	}
+
+	toJSON() {
+		return {
+			'@class': this.constructor.name,
+			...this
+		}
+	}
+
+	static fromJSON(object, refers={}) {
+		if (refers[object.id]) {
+			return refers[object.id];
+		}
+		else {
+			let instance = new this(object.id, object.file);
+
+			refers[object.id] = instance;
+
+			return instance;
+		}
 	}
 };
