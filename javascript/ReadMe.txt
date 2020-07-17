@@ -4,22 +4,33 @@
 /image
 /script
 
-/game
-	/scene/[scene id].scene
-		/example-scene.scene
+/game/[game id]
+	/asset
+		/image
+			/example-image-0.png
+		/sprite
+			/example-sprite-0.json
+		/object
+			/example-object-0.json
 
-		/image/[image file]
-			/example-image0.png
+	/example-game-0
+		/data.json
+		/scene/[scene id]
+			/example-scene-0.json
+			/example-scene-1.json
 
-		/sprite/[image file]/[sprite id].sprite
-			/example-image0.png
-				/example-sprite0.sprite
-				/example-sprite1.sprite
+	/example-game-1
+		/data.json
+		/scene/[scene id]
+			/example-scene-0.json
+			/example-scene-1.json
 
-		/object/[object id].object
-			/example-object0.object
-			/example-object1.object
+[ Data 표기법 ]
 
+Data {
+	id: exampleImage0
+	fields...
+}
 
 [ Data 불러오는 방법 ]
 
@@ -124,6 +135,14 @@
 			instance.images = json.images.map((e) => You.fromJSON(e));
 			instance.sprites = json.sprites.map((e) => You.fromJSON(e));
 			instance.objects = json.objects.map((e) => You.fromJSON(e));
+			
+			function rec(target, refers) {
+				for (property in target) {
+					target.property == link
+					? rec(objects[target.property], refers)
+					: new target.property
+				}
+			}
 
 			return instnace;
 		}
