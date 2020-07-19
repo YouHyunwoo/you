@@ -1,0 +1,10 @@
+{
+    "id": "example-game",
+    "entry": "example-scene-0",
+    "scenes": [
+        "example-scene-0",
+        "example-scene-1"
+    ],
+    "globals": {
+    }
+}

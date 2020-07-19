@@ -122,8 +122,6 @@ var Progress = class Progress {
 	}
 }
 
-// console.dir(window['Progress'])
-
 const CW = Symbol();
 const CCW = Symbol();
 

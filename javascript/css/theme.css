@@ -1,0 +1,7 @@
+body.theme-dark {
+    background-color: #111;
+}
+
+body.theme-dark canvas {
+    background-color: black;
+}

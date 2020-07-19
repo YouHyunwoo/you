@@ -1,0 +1,70 @@
+{
+	"id": "example-scene-0",
+	"assets": {
+		"values": {
+			"example-value": 0
+		},
+		"images": {
+			"image-logo": "image/logo.png",
+			"image-1": "image/youtube.png",
+			"image-2": "image/tree.png"
+		},
+		"sprites": {
+			"sprite-0": {
+				"sheet": "@image-logo",
+				"source": [0, 0, null, null],
+				"anchor": [0.5, 0.5],
+				"scale": [0.25, 0.5]
+			}
+		},
+		"objects": {
+			"building-0" : {
+				"name": "building",
+				"enable": true,
+				"tags": [],
+				"components": [
+				]
+			}
+		}
+	},
+	"objects": [
+		{
+			"name": "house",
+			"enable": true,
+			"tags": [],
+			"components": [
+				{
+					"@module": "/script/uengine.js",
+					"@class": "GameObject",
+					"name": "example object",
+					"enable": true,
+					"tags": [],
+					"components": []
+				}
+			],
+			"transform": {
+				"size": [50, 50]
+			}
+		},
+		{
+			"name": "player",
+			"enable": true,
+			"tags": [],
+			"components": [
+				{
+					"@module": "/script/game-example.js",
+					"@class": "SpriteRenderer",
+					"name": "sprite renderer",
+					"enable": true,
+					"tags": [],
+					"components": [],
+					"sprite": "@sprite-0"
+				}
+			],
+			"transform": {
+				"position": [100, 100],
+				"size": [50, 50]
+			}
+		}
+	]
+}

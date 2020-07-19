@@ -1,0 +1,10 @@
+{
+    "id": "game-rpg",
+    "entry": "title",
+    "scenes": [
+        "title"
+    ],
+    "assets": [
+        "asset-example"
+    ]
+}

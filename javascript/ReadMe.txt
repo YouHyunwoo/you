@@ -14,13 +14,13 @@
 			/example-object-0.json
 
 	/example-game-0
-		/data.json
+		/game.json
 		/scene/[scene id]
 			/example-scene-0.json
 			/example-scene-1.json
 
 	/example-game-1
-		/data.json
+		/game.json
 		/scene/[scene id]
 			/example-scene-0.json
 			/example-scene-1.json

@@ -1,0 +1,29 @@
+{
+    "id": "example-scene-1",
+    "assets": {
+        "values": {
+            "example-value-1": 0
+        },
+        "images": {
+            "logo": "image/logo.png"
+        },
+        "sprites": {
+            "sprite-0": {
+                "sheet": "@logo",
+                "source": [0, 0, null, null],
+                "anchor": [0.5, 0.5],
+                "scale": [0.25, 0.5]
+            }
+        },
+        "objects": {
+        }
+    },
+    "objects": [
+        {
+            "name": "player",
+            "enable": true,
+            "components": [],
+            "tags": []
+        }
+    ]
+}

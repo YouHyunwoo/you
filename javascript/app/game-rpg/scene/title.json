@@ -1,0 +1,104 @@
+{
+	"@module": "/script/game-rpg.js",
+	"@class": "TitleScene",
+	"id": "title",
+	"assets": {
+		"values": {
+		},
+		"images": {
+			"image-logo": "image/logo.png",
+			"image-stone": "image/stone.png"
+		},
+		"sprites": {
+			"sprite-logo": {
+				"sheet": "@image-logo",
+				"source": [0, 0, null, null],
+				"anchor": [0.5, 0.5],
+				"scale": [0.25, 0.5]
+			},
+			"sprite-stone": {
+				"sheet": "@image-stone",
+				"source": [0, 0, null, null],
+				"anchor": [0.5, 0.5],
+				"scale": [0.1, 0.1]
+			}
+		},
+		"objects": {
+		}
+	},
+	"objects": [
+		{
+			"@module": "/script/game-rpg.js",
+			"@class": "Map",
+			"name": "map",
+			"enable": true,
+			"tags": [],
+			"components": [
+				{
+					"@module": "/script/uengine.js",
+					"@class": "UGameObject",
+					"name": "player",
+					"enable": true,
+					"tags": [],
+					"components": [
+						{
+							"@module": "/script/game-rpg.js",
+							"@class": "SpriteRenderer",
+							"name": "sprite renderer",
+							"enable": true,
+							"tags": [],
+							"components": [],
+							"sprite": "@asset-example/sprites/sprite-logo"
+						},
+						{
+							"@module": "/script/game-rpg.js",
+							"@class": "Stats",
+							"name": "stats",
+							"enable": true,
+							"tags": [],
+							"components": []
+						},
+						{
+							"@module": "/script/game-rpg.js",
+							"@class": "PlayerMove",
+							"name": "player move",
+							"enable": true,
+							"tags": [],
+							"components": []
+						}
+					],
+					"transform": {
+						"position": [100, 100],
+						"size": [50, 50]
+					}
+				},
+				{
+					"@module": "/script/uengine.js",
+					"@class": "UGameObject",
+					"name": "stone",
+					"enable": true,
+					"tags": [],
+					"components": [
+						{
+							"@module": "/script/game-rpg.js",
+							"@class": "SpriteRenderer",
+							"name": "sprite renderer",
+							"enable": true,
+							"tags": [],
+							"components": [],
+							"sprite": "@asset-example/sprites/sprite-stone"
+						}
+					],
+					"transform": {
+						"position": [100, 100],
+						"size": [50, 50]
+					}
+				}
+			],
+			"transform": {
+				"position": [0, 0],
+				"size": [500, 500]
+			}
+		}
+	]
+}

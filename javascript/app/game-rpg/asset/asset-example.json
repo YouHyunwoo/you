@@ -1,0 +1,29 @@
+{
+    "values": {
+        "name": "YouHyunwoo"
+    },
+    "images": {
+        "@module": "/script/uengine.js",
+        "@class": "UImage",
+        "image-logo": { "file": "image/logo.png" },
+        "image-stone": { "file": "image/stone.png" }
+    },
+    "sprites": {
+        "@module": "/script/uengine.js",
+        "@class": "USprite",
+        "sprite-logo": {
+            "sheet": "@images/image-logo",
+            "source": [0, 0, null, null],
+            "anchor": [0.5, 0.5],
+            "scale": [0.25, 0.5]
+        },
+        "sprite-stone": {
+            "sheet": "@images/image-stone",
+            "source": [0, 0, null, null],
+            "anchor": [0.5, 0.5],
+            "scale": [0.1, 0.1]
+        }
+    },
+    "objects": {
+    }
+}
