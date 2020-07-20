@@ -17,8 +17,6 @@ let currentAsset = null;
 
 export async function fromJSON (json, asset={}) {
 	if (json[0] == '@') {
-		console.log(json);
-		console.log(asset);
 		return json.substring(1).split('/').reduce((acc, cur) => acc[cur], asset);
 	}
 	else if (json instanceof Array) {
@@ -113,7 +111,7 @@ export class Engine {
 
 		this.input = new Input(canvasId);
 		this.scene = new Scene(this);
-		this.asset = new Asset();
+		this.asset = null;
 	}
 
 	loop(delta) {
@@ -138,6 +136,7 @@ export class Engine {
 			value: app
 		});
 
+		this.asset = app.assets;
 		this.input.addEventListeners();
 		this.scene.init(app.entry);
 
@@ -149,6 +148,7 @@ export class Engine {
 
 		this.scene.clear();
 		this.input.addEventListeners();
+		this.asset = null;
 
 		Object.defineProperty(this, 'app', {
 			enumerable: true,
@@ -159,7 +159,7 @@ export class Engine {
 
 export class Application {
 
-	constructor(id, scenes, asset, entry) {
+	constructor(id, scenes, assets, entry) {
 		Object.defineProperty(this, 'id', {
 			enumerable: true,
 			value: id
@@ -170,9 +170,9 @@ export class Application {
 			value: scenes
 		});
 
-		Object.defineProperty(this, 'asset', {
+		Object.defineProperty(this, 'assets', {
 			enumerable: true,
-			value: asset
+			value: assets
 		});
 
 		Object.defineProperty(this, 'entry', {
@@ -182,28 +182,26 @@ export class Application {
 	}
 
 	static async load(appId) {
-		const data = await fetch(`http://localhost:8000/app/${appId}/app.json`);
+		const data = await fetch(`/app/${appId}/app.json`);
 		const json = await data.json();
 		
 		return this.fromJSON(json);
 	}
 
 	static async fromJSON(json) {
-		const assets = await Promise.all(
+		let assets = await Promise.all(
 			json.assets.map(async asset => await Asset.load(`app/${json.id}/asset/${asset}.json`))
 		);
 
-		console.log(json);
-
-		const asset = Object.keys(json.assets).reduce((acc, cur, idx) => ({ ...acc, [cur]: assets[idx] }), {});
+		assets = assets.reduce((acc, cur, idx) => { acc[json.assets[idx]] = cur; return acc; }, new Asset());
 
 		const scenes = await Promise.all(
-			json.scenes.map(async scene => await UScene.load(`app/${json.id}/scene/${scene}.json`, asset))
+			json.scenes.map(async scene => await UScene.load(`app/${json.id}/scene/${scene}.json`, assets))
 		);
 
 		const entryIndex = json.scenes.indexOf(json.entry);
 
-		const app = new this(json.id, scenes, asset, scenes[entryIndex]);
+		const app = new this(json.id, scenes, assets, scenes[entryIndex]);
 
 		return app;
 	}
@@ -396,8 +394,12 @@ class Input {
 };
 
 class Asset {
+	get(reference) {
+		return reference.substring(1).split('/').reduce((acc, cur) => acc[cur], this)
+	}
+
 	static async load(assetFile) {
-		const data = await fetch(`http://localhost:8000/${assetFile}`);
+		const data = await fetch(`/${assetFile}`);
 		const json = await data.json();
 		const asset = this.fromJSON(json);
 
@@ -444,10 +446,6 @@ class Asset {
 
 		return instance;
 	}
-
-	static combine(assets) {
-
-	}
 }
 
 export class UScene {
@@ -479,7 +477,7 @@ export class UScene {
 	}
 
 	static async load(sceneFile, asset={}) {
-		const data = await fetch(`http://localhost:8000/${sceneFile}`);
+		const data = await fetch(`/${sceneFile}`);
 		const json = await data.json();
 		const scene = json['@class'] ? fromJSON(json, asset) : this.fromJSON(json, asset);
 
@@ -487,36 +485,7 @@ export class UScene {
 	}
 
 	static async fromJSON(json, asset={}) {
-		console.log(`dd!!`);
-		console.log(asset);
 		const scene = new this(json.id);
-
-		// Object.keys(json.assets.images).forEach(imageId => {
-		// 	const image = new UImage(imageId, json.assets.images[imageId]);
-			
-		// 	scene.assets.images[imageId] = image;
-		// 	asset[imageId] = image;
-		// });
-
-		// Object.keys(json.assets.sprites).forEach(spriteId => {
-		// 	const sheetId = json.assets.sprites[spriteId].sheet.substring(1);
-		// 	const sheet = scene.assets.images[sheetId];
-		// 	const sprite = new USprite(spriteId, sheet);
-
-		// 	sprite.source = json.assets.sprites[spriteId].source;
-		// 	sprite.anchor = json.assets.sprites[spriteId].anchor;
-		// 	sprite.scale = json.assets.sprites[spriteId].scale;
-			
-		// 	scene.assets.sprites[spriteId] = sprite;
-		// 	asset[spriteId] = sprite;
-		// });
-
-		// Object.keys(json.assets.objects).forEach(objectId => {
-		// 	const object = GameObject.fromJSON(json.assets.objects[objectId], asset);
-
-		// 	scene.assets.objects[objectId] = object;
-		// 	asset[objectId] = object;
-		// });
 
 		scene.objects = await Promise.all(
 			json.objects.map(async object => {
@@ -850,12 +819,12 @@ export class UObject extends Module() {
 	onDraw(context, ...args) {}
 
 	static async fromJSON(json, asset) {
-		let object = new this(json.name);
+		let object = new this(json['name'] == undefined ? '' : json.name);
 
-		object.enable = json.enable;
-		object.tags = json.tags;
+		object.enable = json['enable'] == undefined ? true : json.enable;
+		object.tags = json['tags'] == undefined ? [] : json.tags;
 		object.addComponents(
-			...(await fromJSON(json.components, asset))
+			...(await fromJSON(json['components'] == undefined ? [] : json.components, asset))
 		);
 
 		return object;
@@ -1032,4 +1001,4 @@ export class UGameObject extends Module(UObject) {
 	}
 };
 
-export { currentInput as Input, currentScene as Scene };
+export { currentInput as Input, currentScene as Scene, currentAsset as Asset };

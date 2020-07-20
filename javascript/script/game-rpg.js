@@ -1,4 +1,4 @@
-import { UScene, UObject, UGameObject, Input, Scene, fromJSON } from '/script/uengine.js';
+import { UScene, UObject, UGameObject, Input, Scene, Asset, fromJSON } from '/script/uengine.js';
 
 const Module = function (superclass=null) {
 	if (superclass) {
@@ -63,6 +63,7 @@ export class PlayerMove extends Module(UObject) {
         }
 
         if (Input.key.press('d')) {
+            // this.parent.spriteRenderer.sprite = Asset.get("@asset-example/sprites/sprite-stone");
             this.parent.transform.position[0] += this.parent.stats.speed * delta;
         }
 
@@ -87,14 +88,29 @@ export class Stats extends Module(UObject) {
         this.dp = 0;
         this.speed = 1;
 
-		this.attackRange = 60;
+		this.attackRange = 10;
 	}
 
 	setStats(name, value) {
 		this[name] = value;
 
 		return this;
-	}
+    }
+    
+    static async fromJSON(json) {
+        const instance = await super.fromJSON(json);
+
+        instance.hp = json.hp || 0;
+        instance.maxhp = json.maxhp || 0;
+        instance.mp = json.mp || 0;
+        instance.ap = json.ap || 0;
+        instance.dp = json.dp || 0;
+        instance.speed = json.speed || 1;
+
+        instance.attackRange = json.attackRange || 10;
+
+        return instance;
+    }
 };
 
 export { id as default };
