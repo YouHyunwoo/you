@@ -96,4 +96,4 @@ Array.prototype.dotv = function (other) {
 
 Array.prototype.distanceTo = function (other) {
 	return Math.sqrt(this.subv(other).dotv(this.subv(other)));
-}
+};
