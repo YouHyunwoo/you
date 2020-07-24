@@ -1,10 +1,10 @@
 {
-    "id": "game-rpg",
-    "entry": "title",
-    "scenes": [
-        "title"
-    ],
-    "assets": [
-        "asset-example"
-    ]
+	"id": "game-rpg",
+	"assets": [
+		"asset-example"
+	],
+	"scenes": [
+		"title"
+	],
+	"entry": "title"
 }

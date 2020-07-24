@@ -14,6 +14,7 @@ const Module = function (superclass=null) {
 let currentInput = null;
 let currentScene = null;
 let currentAsset = null;
+let currentCamera = null;
 
 export async function fromJSON (json, asset={}) {
 	if (json[0] == '@') {
@@ -56,20 +57,30 @@ export class Engine {
 	static #listeners = [];
 	static #handler = null;
 
-	static addListener(engine) {
-		this.#listeners.push(engine);
+	static addListeners(...engines) {
+		for (const engine of engines) {
+			this.#listeners.push(engine);
+		}
 	}
 
-	static removeListener(engine) {
-		let index = this.#listeners.indexOf(engine);
+	static removeListeners(...engines) {
+		for (const engine of engines) {
+			let index = this.#listeners.indexOf(engine);
 
-		if (index >= 0) {
-			this.#listeners.splice(index, 1);
+			if (index >= 0) {
+				this.#listeners.splice(index, 1);
+			}
 		}
 	}
 
 	static init() {
 		this.#handler = window.requestAFrame(() => this.loop(Date.now()));
+	}
+
+	static quit() {
+		window.cancelAFrame(this.#handler);
+
+		this.#listeners.clear();
 	}
 
 	static loop(timeLast) {
@@ -79,18 +90,14 @@ export class Engine {
 
 		this.#listeners.forEach(listener => {
 			currentInput = listener.input;
-			currentScene = listener.scene;
 			currentAsset = listener.asset;
+			currentScene = listener.scene;
+			currentCamera = listener.scene.camera;
+			
 			listener.loop(delta);
 		});
 
 		this.#handler = window.requestAFrame(() => this.loop(timeNow));
-	}
-
-	static quit() {
-		window.cancelAFrame(this.#handler);
-
-		this.#listeners.clear();
 	}
 
 	constructor(canvasId) {
@@ -107,11 +114,42 @@ export class Engine {
 
 		window.addEventListener('resize', this.resizeHandler);
 
-		this.resizeHandler()
+		this.resizeHandler();
 
 		this.input = new Input(canvasId);
-		this.scene = new Scene(this);
 		this.asset = null;
+		this.scene = new Scene(this);
+	}
+
+	run(app) {
+		Object.defineProperty(this, 'app', {
+			enumerable: true,
+			value: app
+		});
+
+		currentInput = this.input;
+		currentAsset = app.assets;
+		currentScene = app.entry;
+		currentCamera = this.scene.camera;
+
+		this.asset = app.assets;
+		this.scene.init(app.entry);
+		this.input.addEventListeners();
+
+		Engine.addListeners(this);
+	}
+
+	stop() {
+		Engine.removeListeners(this);
+
+		this.input.removeEventListeners();
+		this.scene.clear();
+		this.asset = null;
+
+		Object.defineProperty(this, 'app', {
+			enumerable: true,
+			value: null
+		});
 	}
 
 	loop(delta) {
@@ -129,50 +167,24 @@ export class Engine {
 		
 		this.context.restore();
 	}
-
-	run(app) {
-		Object.defineProperty(this, 'app', {
-			enumerable: true,
-			value: app
-		});
-
-		this.asset = app.assets;
-		this.input.addEventListeners();
-		this.scene.init(app.entry);
-
-		Engine.addListener(this);
-	}
-
-	stop() {
-		Engine.removeListener(this);
-
-		this.scene.clear();
-		this.input.addEventListeners();
-		this.asset = null;
-
-		Object.defineProperty(this, 'app', {
-			enumerable: true,
-			value: null
-		});
-	}
 };
 
 export class Application {
 
-	constructor(id, scenes, assets, entry) {
+	constructor(id, assets, scenes, entry) {
 		Object.defineProperty(this, 'id', {
 			enumerable: true,
 			value: id
 		});
 
-		Object.defineProperty(this, 'scenes', {
-			enumerable: true,
-			value: scenes
-		});
-
 		Object.defineProperty(this, 'assets', {
 			enumerable: true,
 			value: assets
+		});
+
+		Object.defineProperty(this, 'scenes', {
+			enumerable: true,
+			value: scenes
 		});
 
 		Object.defineProperty(this, 'entry', {
@@ -184,8 +196,9 @@ export class Application {
 	static async load(appId) {
 		const data = await fetch(`/app/${appId}/app.json`);
 		const json = await data.json();
+		const application = this.fromJSON(json)
 		
-		return this.fromJSON(json);
+		return application;
 	}
 
 	static async fromJSON(json) {
@@ -201,11 +214,66 @@ export class Application {
 
 		const entryIndex = json.scenes.indexOf(json.entry);
 
-		const app = new this(json.id, scenes, assets, scenes[entryIndex]);
+		const app = new this(json.id, assets, scenes, scenes[entryIndex]);
 
 		return app;
 	}
 };
+
+class Asset {
+	get(reference) {
+		return reference.substring(1).split('/').reduce((acc, cur) => acc[cur], this)
+	}
+
+	static async load(assetFile) {
+		const data = await fetch(`/${assetFile}`);
+		const json = await data.json();
+		const asset = this.fromJSON(json);
+
+		return asset;
+	}
+
+	static async fromJSON(json) {
+		const asset = new this();
+
+		for (const p in json) {
+			Object.defineProperty(asset, p, {
+				enumerable: true,
+				value: json[p]
+			});
+
+			if (json[p]['@module'] && json[p]['@class']) {
+				const moduleUrl = json[p]['@module'];
+				const module = await import(`${moduleUrl}`);
+				const cls = module[json[p]['@class']];
+
+				delete json[p]['@module'];
+				delete json[p]['@class'];
+
+				const result = await Promise.all(
+					Object.keys(json[p]).map(async id => await cls.fromJSON({ id: id, ...json[p][id] }, asset))
+				);
+
+				result.forEach(e => {
+					Object.defineProperty(asset[p], e.id, {
+						enumerable: true,
+						value: e,
+					});
+				});
+			}
+			else {
+				Object.keys(json[p]).forEach(id => {
+					Object.defineProperty(asset[p], id, {
+						enumerable:true,
+						value: json[p][id]
+					});
+				});
+			}
+		}
+
+		return asset;
+	}
+}
 
 class Scene {
 
@@ -231,16 +299,20 @@ class Scene {
 
 	push(scene, ...args) {
 		scene.engine = this.#engine;
-		scene.in(...args);
+		scene.enter(...args);
 		this.#scenes.unshift(scene);
 	}
 
 	pop() {
 		if (this.#scenes.length > 0) {
 			let scene = this.#scenes.shift();
-			scene.out();
+			scene.exit();
 			scene.engine = null;
 		}
+	}
+
+	get() {
+		return this.#scenes[0];
 	}
 
 	update(delta) {
@@ -260,7 +332,7 @@ class Scene {
 			this.pop();
 		}
 	}
-};
+}
 
 class Input {
 
@@ -391,61 +463,6 @@ class Input {
 		this.mouse.move = null;
 		this.mouse.up = null;
 	}
-};
-
-class Asset {
-	get(reference) {
-		return reference.substring(1).split('/').reduce((acc, cur) => acc[cur], this)
-	}
-
-	static async load(assetFile) {
-		const data = await fetch(`/${assetFile}`);
-		const json = await data.json();
-		const asset = this.fromJSON(json);
-
-		return asset;
-	}
-
-	static async fromJSON(json) {
-		const instance = new this();
-
-		for (const p in json) {
-			Object.defineProperty(instance, p, {
-				enumerable: true,
-				value: json[p]
-			});
-
-			if (json[p]['@module'] && json[p]['@class']) {
-				const moduleUrl = json[p]['@module'];
-				const module = await import(`${moduleUrl}`);
-				const cls = module[json[p]['@class']];
-
-				delete json[p]['@module'];
-				delete json[p]['@class'];
-
-				const result = await Promise.all(
-					Object.keys(json[p]).map(async id => await cls.fromJSON({ id: id, ...json[p][id] }, instance))
-				);
-
-				result.forEach(e => {
-					Object.defineProperty(instance[p], e.id, {
-						enumerable: true,
-						value: e,
-					});
-				});
-			}
-			else {
-				Object.keys(json[p]).forEach(id => {
-					Object.defineProperty(instance[p], id, {
-						enumerable:true,
-						value: json[p][id]
-					});
-				});
-			}
-		}
-
-		return instance;
-	}
 }
 
 export class UScene {
@@ -460,6 +477,8 @@ export class UScene {
 
 	objects = [];
 
+	camera;
+
 	constructor(id) {
 		Object.defineProperty(this, 'id', {
 			enumerable: true,
@@ -467,13 +486,72 @@ export class UScene {
 		});
 	}
 
-	in(...args) {}
-	out() {}
+	find(expression, recursively=false) {
+		const [name, ...tags] = expression.split('#');
+
+		function match(self, name, tags) {
+			if (!name || self.name == null || self.name == name) {
+				for (const tag of tags) {
+					if (self.tags.includes(tag)) {
+						return self;
+					}
+				}
+			}
+
+			for (const c of self.components) {
+				if (match(c, name, tags) != null) {
+					return c;
+				}
+			}
+
+			return null;
+		}
+
+		for (const o of this.objects) {
+			const result = match(o, name, tags);
+
+			if (result != null) {
+				return result;
+			}
+		}
+
+		return null;
+	}
+
+	enter() {
+		this.objects.forEach((object) => object.init());
+	}
+	exit() {
+		this.objects.forEach((object) => object.dispose());
+	}
 	update(delta, ...args) {
 		this.objects.forEach(object => object.update(delta, ...args));
 	}
 	draw(context, ...args) {
+		if (this.camera) {
+			context.save();
+
+			const c = this.camera;
+			// const s = c.transform.size ? c.transform.size : [this.engine.canvas.width, this.engine.canvas.height];
+
+			const scale = [
+				this.engine.canvas.width / c.transform.size[0],
+				this.engine.canvas.height / c.transform.size[1]
+			];
+
+			context.scale(scale[0], scale[1]);
+
+			context.translate(
+				-c.transform.position[0],
+				-c.transform.position[1]
+			);
+		}
+		
 		this.objects.forEach(object => object.draw(context, ...args));
+
+		if (this.camera) {
+			context.restore();
+		}
 	}
 
 	static async load(sceneFile, asset={}) {
@@ -498,9 +576,16 @@ export class UScene {
 			})
 		);
 
+		for (const o of scene.objects) {
+			if (o instanceof UCamera) {
+				scene.camera = o;
+				break;
+			}
+		}
+
 		return scene;
 	}
-};
+}
 
 export class UImage {
 
@@ -551,7 +636,7 @@ export class UImage {
 	static fromJSON(json) {
 		return new this(json.id, json.file);
 	}
-};
+}
 
 export class USprite {
 
@@ -625,7 +710,7 @@ export class USprite {
 
 		return instance;
 	}
-};
+}
 
 export class UObject extends Module() {
 	constructor(name) {
@@ -786,37 +871,62 @@ export class UObject extends Module() {
 		return this;
 	}
 
-	onAdded(parent) {}
-	onRemoved(parent) {}
+	init() {
+		this.onInit();
+
+		this.components.forEach(component => component.init());
+
+		this.onPostInit();
+	}
 
 	dispose() {
 		Object.defineProperty(this, 'disposed', {
 			value: true
 		});
 
+		this.onPreDispose();
+
+		this.components.forEach(component => component.dispose());
+
 		this.onDispose();
 	}
-
-	onCreate() {}
-	onDispose() {}
 
 	update(delta, ...args) {
 		if (this.enable && !this.disposed) {
 			this.onUpdate(delta, ...args);
-			[...this.components].forEach((c) => c.update(delta, ...args));
+
+			[...this.components].forEach(component => component.update(delta, ...args));
 		}
 
-		this.components.filter((c) => c.disposed).forEach((c) => this.removeComponents(c));
+		this.components
+			.filter(component => component.disposed)
+			.forEach(component => {
+				component.onDelete();
+				this.removeComponents(component);
+			});
 	}
-	onUpdate(delta, ...args) {}
 
 	draw(context, ...args) {
 		if (this.enable && !this.disposed) {
 			this.onDraw(context, ...args);
+			
 			this.components.forEach((c) => c.draw(context, ...args));
 		}
 	}
+	
+	onCreate() {}
+	onDelete() {}
+
+	onInit() {}
+	onPostInit() {}
+	onPreDispose() {}
+	onDispose() {}
+
+	onUpdate(delta, ...args) {}
 	onDraw(context, ...args) {}
+
+	onAdded(parent) {}
+	onRemoved(parent) {}
 
 	static async fromJSON(json, asset) {
 		let object = new this(json['name'] == undefined ? '' : json.name);
@@ -829,7 +939,7 @@ export class UObject extends Module() {
 
 		return object;
 	}
-};
+}
 
 export class UState extends Module(UObject) {
 	request(...args) {}
@@ -847,7 +957,7 @@ export class UState extends Module(UObject) {
 		this.onExit(...args);
 	}
 	onExit(...args) {}
-};
+}
 
 export class UContext extends Module(UObject) {
 	constructor(name) {
@@ -937,7 +1047,7 @@ export class UContext extends Module(UObject) {
 
 		return instance;
 	}
-};
+}
 
 export class UGameObject extends Module(UObject) {
 	constructor(name) {
@@ -952,14 +1062,17 @@ export class UGameObject extends Module(UObject) {
 	}
 
 	draw(context, ...args) {
-		context.save();
+		if (this.enable && !this.disposed) {
+			context.save();
 
-		context.translate(...this.transform.position);
+			context.translate(...this.transform.position);
 
-		this.onDraw(context, ...args);
-		this.components.forEach((c) => c.draw(context, ...args));
+			this.onDraw(context, ...args);
 
-		context.restore();
+			this.components.forEach(component => component.draw(context, ...args));
+
+			context.restore();
+		}
 	}
 
 	setPosition(position) {
@@ -994,11 +1107,15 @@ export class UGameObject extends Module(UObject) {
 		}
 
 		if (json.anchor) {
-			gameObject.anchor = anchor;
+			gameObject.anchor = json.anchor;
 		}
 
 		return gameObject;
 	}
-};
+}
 
-export { currentInput as Input, currentScene as Scene, currentAsset as Asset };
+export class UCamera extends UGameObject {
+
+}
+
+export { currentInput as Input, currentScene as Scene, currentAsset as Asset, currentCamera as Camera };

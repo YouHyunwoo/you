@@ -4,6 +4,20 @@
 	"id": "title",
 	"objects": [
 		{
+			"@module": "/script/uengine.js",
+			"@class": "UCamera",
+			"components": [
+				{
+					"@module": "/script/game-rpg.js",
+					"@class": "PlayerView"
+				}
+			],
+			"transform": {
+				"position": [100, 100]
+			},
+			"anchor": [0.5, 0.5]
+		},
+		{
 			"@module": "/script/game-rpg.js",
 			"@class": "Map",
 			"name": "map",
