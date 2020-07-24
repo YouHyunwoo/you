@@ -1,15 +1,8 @@
-const Module = function (superclass=null) {
-	if (superclass) {
-		return class extends superclass {
-			static module = new URL(import.meta.url).pathname;
-		};
-	}
-	else {
-		return class {
-			static module = new URL(import.meta.url).pathname;
-		};
-	}
-};
+import * as Module from '/script/util/module.js';
+
+Module.set(import.meta.url);
+
+
 
 let currentInput = null;
 let currentScene = null;
@@ -26,7 +19,7 @@ export async function fromJSON (json, asset={}) {
 	else if (json instanceof Object) {
 		if (json.hasOwnProperty('@class')) {
 			const moduleUrl = json['@module'];
-			const module = await import(`${moduleUrl}`);
+			const module = await import(moduleUrl);
 			const cls = module[json['@class']];
 			// console.log(json)
 			// console.log(module);
@@ -162,12 +155,13 @@ export class Engine {
 
 		this.context.save();
 		this.context.clearRect(0, 0, this.canvas.width, this.canvas.height);
+		// console.log("clear: " + this.canvas.width);
 
 		this.scene.draw(this.context);
 		
 		this.context.restore();
 	}
-};
+}
 
 export class Application {
 
@@ -218,7 +212,7 @@ export class Application {
 
 		return app;
 	}
-};
+}
 
 class Asset {
 	get(reference) {
@@ -492,15 +486,21 @@ export class UScene {
 		function match(self, name, tags) {
 			if (!name || self.name == null || self.name == name) {
 				for (const tag of tags) {
-					if (self.tags.includes(tag)) {
-						return self;
+					if (!self.tags.includes(tag)) {
+						return null;
 					}
 				}
+
+				return self;
 			}
 
-			for (const c of self.components) {
-				if (match(c, name, tags) != null) {
-					return c;
+			if (recursively) {
+				for (const c of self.components) {
+					const result = match(c, name, tags);
+					
+					if (result != null) {
+						return result;
+					}
 				}
 			}
 
@@ -509,7 +509,7 @@ export class UScene {
 
 		for (const o of this.objects) {
 			const result = match(o, name, tags);
-
+			
 			if (result != null) {
 				return result;
 			}
@@ -531,19 +531,23 @@ export class UScene {
 		if (this.camera) {
 			context.save();
 
-			const c = this.camera;
-			// const s = c.transform.size ? c.transform.size : [this.engine.canvas.width, this.engine.canvas.height];
+			const camera = this.camera;
+			const size = camera.transform.size[0] > 0 && camera.transform.size[0] > 0
+				? camera.transform.size
+				: [this.engine.canvas.width, this.engine.canvas.height];
 
 			const scale = [
-				this.engine.canvas.width / c.transform.size[0],
-				this.engine.canvas.height / c.transform.size[1]
+				this.engine.canvas.width / size[0],
+				this.engine.canvas.height / size[1]
 			];
 
-			context.scale(scale[0], scale[1]);
+			if (scale[0] != 1 || scale[1] != 1) {
+				context.scale(scale[0], scale[1]);
+			}
 
 			context.translate(
-				-c.transform.position[0],
-				-c.transform.position[1]
+				-camera.transform.position[0] + size[0] * camera.anchor[0],
+				-camera.transform.position[1] + size[1] * camera.anchor[1]
 			);
 		}
 		
@@ -667,11 +671,9 @@ export class USprite {
 		}
 
 		if (this.sheet && this.sheet.loaded) {
-			let [w, h] = [this.source[2] || this.sheet.width, this.source[3] || this.sheet.height];
+			let size = [this.source[2] || this.sheet.width, this.source[3] || this.sheet.height];
 
-			this.sheet.draw(context,
-				this.source[0], this.source[1], w, h,
-				x - w * this.anchor[0] * this.scale[0], y - h * this.anchor[1] * this.scale[1], w * this.scale[0], h * this.scale[1]);
+			this.sheet.draw(context, ...this.source.slice(0, 2), ...size, ...[x, y].subv(size.mulv(this.anchor).mulv(this.scale)), ...size.mulv(this.scale))
 		}
 	}
 
@@ -712,7 +714,7 @@ export class USprite {
 	}
 }
 
-export class UObject extends Module() {
+export class UObject extends Module.apply() {
 	constructor(name) {
 		super();
 
@@ -735,7 +737,7 @@ export class UObject extends Module() {
 
 	set order(value) {
 		if (this.parent) {
-			let comps = this.parent.components;
+			const comps = this.parent.components;
 
 			comps.splice(comps.indexOf(this), 1);
 			comps.splice(Math.max(value, 0), 0, this);
@@ -941,7 +943,7 @@ export class UObject extends Module() {
 	}
 }
 
-export class UState extends Module(UObject) {
+export class UState extends Module.apply(UObject) {
 	request(...args) {}
 
 	transit(stateName, enterArgs, exitArgs) {
@@ -959,7 +961,7 @@ export class UState extends Module(UObject) {
 	onExit(...args) {}
 }
 
-export class UContext extends Module(UObject) {
+export class UContext extends Module.apply(UObject) {
 	constructor(name) {
 		super(name);
 
@@ -1049,7 +1051,7 @@ export class UContext extends Module(UObject) {
 	}
 }
 
-export class UGameObject extends Module(UObject) {
+export class UGameObject extends Module.apply(UObject) {
 	constructor(name) {
 		super(name);
 
@@ -1073,6 +1075,15 @@ export class UGameObject extends Module(UObject) {
 
 			context.restore();
 		}
+	}
+
+	onDraw(context) {
+		context.save();
+
+		context.strokeStyle = 'blue';
+		context.strokeRect(...[0, 0].subv(this.transform.size.mulv(this.anchor)), ...this.transform.size);
+		
+		context.restore();
 	}
 
 	setPosition(position) {

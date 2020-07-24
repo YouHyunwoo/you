@@ -1,0 +1,19 @@
+{
+    "id": "collision",
+    "objects": [
+        {
+            "@module": "/script/game-rpg.js",
+            "@class": "BoxCollider",
+            "name": "box",
+            "transform": {
+                "position": [100, 100],
+                "size": [100, 100]
+            }
+        },
+        {
+            "@module": "/script/game-rpg.js",
+            "@class": "RayTest",
+            "name": "ray"
+        }
+    ]
+}

@@ -1,24 +1,14 @@
 import U, { UObject } from '/script/uengine.js';
+import * as Module from '/script/util/module.js';
 
-const Module = function (superclass=null) {
-	if (superclass) {
-		return class extends superclass {
-			static module = new URL(import.meta.url).pathname;
-		};
-	}
-	else {
-		return class {
-			static module = new URL(import.meta.url).pathname;
-		};
-	}
-};
+Module.set(import.meta.url);
 
 const id = 'example-game';
 const date = '2020-07-18';
 const creator = 'YouHyunwoo';
 const description = 'Game for example';
 
-class RectRenderer extends Module(UObject) {
+class RectRenderer extends Module.apply(UObject) {
     onDraw(context) {
 		context.save();
 
@@ -33,7 +23,7 @@ class RectRenderer extends Module(UObject) {
     }
 };
 
-class SpriteRenderer extends Module(UObject) {
+class SpriteRenderer extends Module.apply(UObject) {
     
     sprite;
 

@@ -4,26 +4,26 @@
 	"id": "title",
 	"objects": [
 		{
-			"@module": "/script/uengine.js",
-			"@class": "UCamera",
-			"components": [
-				{
-					"@module": "/script/game-rpg.js",
-					"@class": "PlayerView"
-				}
-			],
-			"transform": {
-				"position": [100, 100]
-			},
-			"anchor": [0.5, 0.5]
-		},
-		{
 			"@module": "/script/game-rpg.js",
 			"@class": "Map",
 			"name": "map",
 			"enable": true,
 			"tags": [],
 			"components": [
+				{
+					"@module": "/script/game-rpg.js",
+					"@class": "Box",
+					"name": "box",
+					"transform": {
+						"position": [0, 0],
+						"size": [50, 35]
+					},
+					"anchor": [0.5, 0.5],
+					"boxSize": [60, 100],
+					"boxAnchor": [0.5, 1],
+					"boxColor": "white",
+					"boxFill": false
+				},
 				{
 					"@module": "/script/uengine.js",
 					"@class": "UGameObject",
@@ -50,8 +50,9 @@
 					],
 					"transform": {
 						"position": [100, 100],
-						"size": [50, 50]
-					}
+						"size": [50, 35]
+					},
+					"anchor": [0.5, 0.5]
 				},
 				{
 					"@module": "/script/uengine.js",
@@ -71,15 +72,32 @@
 						}
 					],
 					"transform": {
-						"position": [100, 100],
-						"size": [50, 50]
-					}
+						"position": [30, 30],
+						"size": [10, 7]
+					},
+					"anchor": [0.5, 0.5]
 				}
 			],
 			"transform": {
 				"position": [0, 0],
 				"size": [500, 500]
 			}
+		},
+		{
+			"@module": "/script/uengine.js",
+			"@class": "UCamera",
+			"name": "camera",
+			"components": [
+				{
+					"@module": "/script/game-rpg.js",
+					"@class": "PlayerView"
+				}
+			],
+			"transform": {
+				"position": [0, 0],
+				"size": [500, 500]
+			},
+			"anchor": [0.5, 0.5]
 		}
 	]
 }
