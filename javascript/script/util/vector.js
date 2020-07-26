@@ -12,6 +12,12 @@ Array.prototype.equals = function (other) {
 	return true;
 }
 
+Array.prototype.setv = function (other) {
+	for (let i = 0; i < this.length; i++) {
+		this[i] = other[i];
+	}
+}
+
 Array.prototype.addv = function (other) {
 	if (this.length != other.length) {
 		throw 'ArgumentError';
@@ -94,6 +100,16 @@ Array.prototype.dotv = function (other) {
 	return result;
 };
 
+Object.defineProperty(Array.prototype, 'magnitude', {
+	get: function () {
+		return Math.sqrt(this.reduce((acc, cur) => acc + cur ** 2, 0));
+	}
+});
+
 Array.prototype.distanceTo = function (other) {
 	return Math.sqrt(this.subv(other).dotv(this.subv(other)));
 };
+
+Array.prototype.normalize = function () {
+	return this.divs(this.distanceTo([0, 0]));
+}
