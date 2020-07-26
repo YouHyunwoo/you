@@ -1,3 +1,4 @@
+import Rectangle from './util/rect.js';
 import * as Module from '/script/util/module.js';
 
 Module.set(import.meta.url);
@@ -84,7 +85,7 @@ export class Engine {
 		this.#listeners.forEach(listener => {
 			currentInput = listener.input;
 			currentAsset = listener.asset;
-			currentScene = listener.scene;
+			currentScene = listener.scene.get();
 			currentCamera = listener.scene.camera;
 			
 			listener.loop(delta);
@@ -518,6 +519,35 @@ export class UScene {
 		return null;
 	}
 
+	findAll(expression, recursively=false) {
+		const [name, ...tags] = expression.split('#');
+		
+		function matchAll(self, name, tags, result) {
+			if (!name || self.name == null || self.name == name) {
+				for (const tag of tags) {
+					if (self.tags.includes(tag)) {
+						result.push(self);
+						return;
+					}
+				}
+			}
+
+			if (recursively) {
+				for (const c of self.components) {
+					matchAll(c, name, tags, result);
+				}
+			}
+		}
+
+		const result = [];
+
+		for (const o of this.objects) {
+			matchAll(o, name, tags, result);
+		}
+
+		return result;
+	}
+
 	enter() {
 		this.objects.forEach((object) => object.init());
 	}
@@ -873,6 +903,10 @@ export class UObject extends Module.apply() {
 		return this;
 	}
 
+	hasTags(...tags) {
+		return tags.every(tag => this.tags.includes(tag));
+	}
+
 	init() {
 		this.onInit();
 
@@ -1055,6 +1089,8 @@ export class UGameObject extends Module.apply(UObject) {
 	constructor(name) {
 		super(name);
 
+		this.layers = {};
+
 		this.transform = {
 			position: [0, 0],
 			size: [0, 0],
@@ -1104,9 +1140,17 @@ export class UGameObject extends Module.apply(UObject) {
 		return this;
 	}
 
+	getRect() {
+		return new Rectangle(...this.transform.position.subv(this.transform.size.mulv(this.anchor)), ...this.transform.size);
+	}
+
 	static async fromJSON(json, asset) {
 		let gameObject = await super.fromJSON(json, asset);
 		
+		if (json.layers) {
+			gameObject.layers = json.layers;
+		}
+
 		if (json.transform) {
 			if (json.transform.position) {
 				gameObject.transform.position = json.transform.position;
