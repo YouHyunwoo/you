@@ -1,19 +1,32 @@
 {
-    "id": "collision",
-    "objects": [
-        {
-            "@module": "/script/game-rpg.js",
-            "@class": "BoxCollider",
-            "name": "box",
-            "transform": {
-                "position": [100, 100],
-                "size": [100, 100]
-            }
-        },
-        {
-            "@module": "/script/game-rpg.js",
-            "@class": "RayTest",
-            "name": "ray"
-        }
-    ]
+	"id": "collision",
+	"objects": [
+		{
+			"@module": "/script/game-rpg.js",
+			"@class": "BoxCollider",
+			"name": "box",
+			"tags": ["collider", "box"],
+			"transform": {
+				"position": [300, 300],
+				"size": [100, 100]
+			}
+		},
+		{
+			"@module": "/script/game-rpg.js",
+			"@class": "BoxCollider",
+			"name": "box2",
+			"tags": ["collider", "box"],
+			"transform": {
+				"position": [100, 400],
+				"size": [200, 50]
+			}
+		},
+		{
+			"@module": "/script/game-rpg.js",
+			"@class": "BoxTest",
+			"name": "ray",
+			"size": [50, 50],
+			"anchor": [0.8, 0.2]
+		}
+	]
 }
