@@ -5,83 +5,99 @@
 	"objects": [
 		{
 			"@module": "/script/game-rpg.js",
+			"@class": "Arrangement",
+			"name": "arrangement",
+			"layerType": "collision",
+			"layerOrder": ["ground", "field", "sky"]
+		},
+		{
+			"@module": "/script/game-rpg.js",
 			"@class": "Map",
 			"name": "map",
-			"enable": true,
-			"tags": [],
-			"components": [
-				{
-					"@module": "/script/game-rpg.js",
-					"@class": "Box",
-					"name": "box",
-					"transform": {
-						"position": [0, 0],
-						"size": [50, 35]
-					},
-					"anchor": [0.5, 0.5],
-					"boxSize": [60, 100],
-					"boxAnchor": [0.5, 1],
-					"boxColor": "white",
-					"boxFill": false
-				},
-				{
-					"@module": "/script/uengine.js",
-					"@class": "UGameObject",
-					"name": "player",
-					"enable": true,
-					"tags": [],
-					"components": [
-						{
-							"@module": "/script/game-rpg.js",
-							"@class": "SpriteRenderer",
-							"name": "spriteRenderer",
-							"sprite": "@asset-example/sprites/sprite-logo"
-						},
-						{
-							"@module": "/script/game-rpg.js",
-							"@class": "Stats",
-							"name": "stats",
-							"speed": 100
-						},
-						{
-							"@module": "/script/game-rpg.js",
-							"@class": "PlayerMove"
-						}
-					],
-					"transform": {
-						"position": [100, 100],
-						"size": [50, 35]
-					},
-					"anchor": [0.5, 0.5]
-				},
-				{
-					"@module": "/script/uengine.js",
-					"@class": "UGameObject",
-					"name": "stone",
-					"enable": true,
-					"tags": [],
-					"components": [
-						{
-							"@module": "/script/game-rpg.js",
-							"@class": "SpriteRenderer",
-							"name": "sprite renderer",
-							"enable": true,
-							"tags": [],
-							"components": [],
-							"sprite": "@asset-example/sprites/sprite-stone"
-						}
-					],
-					"transform": {
-						"position": [30, 30],
-						"size": [10, 7]
-					},
-					"anchor": [0.5, 0.5]
-				}
-			],
+			"layers": {
+				"collision": "ground"
+			},
+			"tags": ["ground"],
+			"components": [],
 			"transform": {
 				"position": [0, 0],
 				"size": [500, 500]
 			}
+		},
+		{
+			"@module": "/script/game-rpg.js",
+			"@class": "Box",
+			"name": "box",
+			"layers": {
+				"collision": "field"
+			},
+			"tags": ["block"],
+			"transform": {
+				"position": [0, 0],
+				"size": [50, 35]
+			},
+			"anchor": [0.5, 0.5],
+			"boxSize": [60, 100],
+			"boxAnchor": [0.5, 1],
+			"boxColor": "white",
+			"boxFill": false
+		},
+		{
+			"@module": "/script/uengine.js",
+			"@class": "UGameObject",
+			"name": "player",
+			"layers": {
+				"collision": "field"
+			},
+			"tags": [],
+			"components": [
+				{
+					"@module": "/script/game-rpg.js",
+					"@class": "SpriteRenderer",
+					"name": "spriteRenderer",
+					"sprite": "@asset-example/sprites/sprite-logo"
+				},
+				{
+					"@module": "/script/game-rpg.js",
+					"@class": "Stats",
+					"name": "stats",
+					"speed": 100
+				},
+				{
+					"@module": "/script/game-rpg.js",
+					"@class": "PlayerMove"
+				}
+			],
+			"transform": {
+				"position": [100, 100],
+				"size": [50, 35]
+			},
+			"anchor": [0.5, 0.5]
+		},
+		{
+			"@module": "/script/uengine.js",
+			"@class": "UGameObject",
+			"name": "stone",
+			"layers": {
+				"collision": "field"
+			},
+			"tags": ["block"],
+			"components": [
+				{
+					"@module": "/script/game-rpg.js",
+					"@class": "SpriteRenderer",
+					"name": "sprite renderer",
+					"enable": true,
+					"tags": [],
+					"components": [],
+					"sprite": "@asset-example/sprites/sprite-stone"
+				}
+			],
+			"transform": {
+				"position": [30, 30],
+				"size": [10, 7]
+			},
+			"anchor": [0.5, 0.5]
 		},
 		{
 			"@module": "/script/uengine.js",
