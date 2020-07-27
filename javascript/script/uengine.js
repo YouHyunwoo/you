@@ -355,9 +355,11 @@ class Input {
 		};
 
 		this.#tmouse = {
+			position: null,
 			down: null,
 			move: null,
 			up: null,
+			wheel: null,
 		};
 
 		this.mouse = {
@@ -365,6 +367,7 @@ class Input {
 			down: null,
 			move: null,
 			up: null,
+			wheel: null,
 		};
 	}
 
@@ -386,20 +389,25 @@ class Input {
 		this.canvas.addEventListener('pointerdown', (e) => {
 			e.target.setPointerCapture(e.pointerId);
 
-			this.mouse.position = [e.offsetX, e.offsetY];
+			this.#tmouse.position = [e.offsetX, e.offsetY];
 			this.#tmouse.down = [e.offsetX, e.offsetY];
 		});
 
 		this.canvas.addEventListener('pointermove', (e) => {
-			this.mouse.position = [e.offsetX, e.offsetY];
+			this.#tmouse.position = [e.offsetX, e.offsetY];
 			this.#tmouse.move = [e.offsetX, e.offsetY];
 		});
 
 		this.canvas.addEventListener('pointerup', (e) => {
 			e.target.releasePointerCapture(e.pointerId);
 
-			this.mouse.position = [e.offsetX, e.offsetY];
+			this.#tmouse.position = [e.offsetX, e.offsetY];
 			this.#tmouse.up = [e.offsetX, e.offsetY];
+		});
+
+		this.canvas.addEventListener('wheel', (e) => {
+			this.#tmouse.position = [e.offsetX, e.offsetY];
+			this.#tmouse.wheel = [e.deltaX, e.deltaY, e.deltaZ];
 		});
 	}
 	
@@ -409,6 +417,7 @@ class Input {
 		this.canvas.removeEventListener('pointerdown');
 		this.canvas.removeEventListener('pointermove');
 		this.canvas.removeEventListener('pointerup');
+		this.canvas.removeEventListener('wheel');
 	}
 
 	update() {
@@ -434,6 +443,9 @@ class Input {
 
 		this.#tkey.down.clear();
 
+		this.mouse.position = this.#tmouse.position;
+		this.#tmouse.position = null;
+
 		this.mouse.down = this.#tmouse.down;
 		this.#tmouse.down = null;
 
@@ -442,6 +454,9 @@ class Input {
 
 		this.mouse.up = this.#tmouse.up;
 		this.#tmouse.up = null;
+
+		this.mouse.wheel = this.#tmouse.wheel;
+		this.#tmouse.wheel = null;
 	}
 
 	clear() {
@@ -450,13 +465,16 @@ class Input {
 		this.#key.down.clear();
 		this.#key.press.clear();
 		this.#key.up.clear();
+		this.#tmouse.position = null;
 		this.#tmouse.down = null;
 		this.#tmouse.move = null;
 		this.#tmouse.up = null;
+		this.#tmouse.wheel = null;
 		this.mouse.position = null;
 		this.mouse.down = null;
 		this.mouse.move = null;
 		this.mouse.up = null;
+		this.mouse.wheel = null;
 	}
 }
 
@@ -749,6 +767,7 @@ export class UObject extends Module.apply() {
 		super();
 
 		Object.defineProperty(this, 'disposed', {
+			configurable: true,
 			value: false
 		});
 
@@ -1117,7 +1136,7 @@ export class UGameObject extends Module.apply(UObject) {
 		context.save();
 
 		context.strokeStyle = 'blue';
-		context.strokeRect(...[0, 0].subv(this.transform.size.mulv(this.anchor)), ...this.transform.size);
+		context.strokeRect(...this.transform.size.mulv(this.anchor).muls(-1), ...this.transform.size);
 		
 		context.restore();
 	}
@@ -1170,7 +1189,7 @@ export class UGameObject extends Module.apply(UObject) {
 }
 
 export class UCamera extends UGameObject {
-
+	onDraw(context) {}
 }
 
 export { currentInput as Input, currentScene as Scene, currentAsset as Asset, currentCamera as Camera };

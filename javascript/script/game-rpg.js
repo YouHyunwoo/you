@@ -21,8 +21,7 @@ export class Arrangement extends Module.apply(UObject) {
 			if ([a, b].every(x => x instanceof UGameObject)) {
 				const aLayer = this.layerOrder.indexOf(a.layers[this.layerType]);
 				const bLayer = this.layerOrder.indexOf(b.layers[this.layerType]);
-
-
+				
 				if (aLayer == -1 || bLayer == -1) {
 					return 0;
 				}
@@ -49,6 +48,10 @@ export class Arrangement extends Module.apply(UObject) {
 }
 
 export class Map extends Module.apply(UGameObject) {
+	onUpdate(delta) {
+		// generate objects
+	}
+
 	onDraw(context) {
 		context.save();
 
@@ -224,17 +227,103 @@ export class PlayerMove extends Module.apply(UObject) {
 	}
 }
 
-export class PlayerView extends Module.apply(UCamera) {
+export class PlayerView extends Module.apply(UObject) {
 	onInit() {
 		this.cameraTf = this.parent.transform;
 		this.playerTf = Scene.find('player', true);
+
+		this.size = this.cameraTf.size;
+		this.scaleStep = 0;
 	}
 
 	onUpdate(delta) {
 		this.cameraTf.position = [...this.playerTf.transform.position];
+
+		const mouse = Input.mouse;
+
+		if (mouse.wheel) {
+			if (mouse.wheel[1] > 0) {
+				this.scaleStep = Math.max(-5, this.scaleStep - 1);
+			}
+			else {
+				this.scaleStep = Math.min(5, this.scaleStep + 1);
+			}
+
+			this.cameraTf.size = this.size.divs(Math.pow(1.3, this.scaleStep));
+		}
 	}
 }
 
+// Monsters
+export class RandomCharacterGenerator extends Module.apply(UObject) {
+	onInit() {
+		this.map = Scene.find('map', true);
+		this.characters = [];
+	}
+
+	onUpdate(delta) {
+		// if (Math.random() < 0.01) {
+		// 	const character = new Character('character');
+
+		// 	character.layers['collision'] = 'field';
+		// 	character.transform.position = [Math.random(), Math.random()].mulv(this.map.transform.size);
+		// 	character.transform.size = [50, 35];
+		// 	character.anchor = [0.5, 0.5];
+
+		// 	character.tall = Math.random() * 20 + 40;
+		// 	character.fat = Math.random() * 20 + 20;
+
+		// 	character.addComponents(
+		// 		new Stats('stats').setStats('hp', 10).setStats('maxhp', 10)
+		// 	);
+
+		// 	Scene.objects.push(character);
+		// }
+	}
+}
+
+export class Character extends Module.apply(UGameObject) {
+	constructor(name) {
+		super(name);
+
+		this.tall = 0;
+		this.fat = 0;
+		this.age = 0;
+		this.speed = 10;
+	}
+
+	onUpdate(delta) {
+		this.age += this.speed * delta;
+
+		this.tall += this.speed * delta * 0.05;
+		this.fat += this.speed * delta * 0.02;
+
+		if (this.age > 100) {
+			console.log('dead');
+			this.dispose();
+		}
+	}
+
+	onDraw(context) {
+		super.onDraw(context);
+
+		context.save();
+
+		context.strokeStyle = `rgb(255, ${255 - this.age / 100 * 255}, ${255 - this.age / 100 * 255})`;
+		context.strokeRect(-this.fat / 2, -this.tall, this.fat, this.tall);
+
+		context.restore();
+	}
+
+	static async fromJSON(json) {
+		const character = await super.fromJSON(json);
+
+		character.tall = json.tall;
+		character.fat = json.fat;
+
+		return character;
+	}
+}
 
 
 

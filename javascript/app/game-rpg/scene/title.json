@@ -20,7 +20,6 @@
 			"tags": ["ground"],
 			"components": [],
 			"transform": {
-				"position": [0, 0],
 				"size": [500, 500]
 			}
 		},
@@ -81,15 +80,12 @@
 			"layers": {
 				"collision": "field"
 			},
-			"tags": ["block"],
+			"tags": [],
 			"components": [
 				{
 					"@module": "/script/game-rpg.js",
 					"@class": "SpriteRenderer",
 					"name": "sprite renderer",
-					"enable": true,
-					"tags": [],
-					"components": [],
 					"sprite": "@asset-example/sprites/sprite-stone"
 				}
 			],
@@ -98,6 +94,10 @@
 				"size": [10, 7]
 			},
 			"anchor": [0.5, 0.5]
+		},
+		{
+			"@module": "/script/game-rpg.js",
+			"@class": "RandomCharacterGenerator"
 		},
 		{
 			"@module": "/script/uengine.js",
