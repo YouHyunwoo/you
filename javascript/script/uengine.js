@@ -104,11 +104,14 @@ export class Engine {
 			this.canvas.width = this.canvas.height = size;
 			this.canvas.style.left = Math.floor((window.innerWidth - this.canvas.width) / 2) + "px";
 			this.canvas.style.top = Math.floor((window.innerHeight - this.canvas.height) / 2) + "px";
+
+			this.context.imageSmoothingEnabled = false;
 		}
 
 		window.addEventListener('resize', this.resizeHandler);
 
 		this.resizeHandler();
+		
 
 		this.input = new Input(canvasId);
 		this.asset = null;

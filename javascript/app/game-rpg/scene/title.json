@@ -24,6 +24,50 @@
 			}
 		},
 		{
+			"@module": "/script/uengine.js",
+			"@class": "UGameObject",
+			"name": "tree",
+			"layers": {
+				"collision": "field"
+			},
+			"tags": ["block"],
+			"transform": {
+				"position": [500, 400],
+				"size": [50, 35]
+			},
+			"anchor": [0.5, 0.5],
+			"components": [
+				{
+					"@module": "/script/game-rpg.js",
+					"@class": "SpriteRenderer",
+					"name": "spriteRenderer",
+					"sprite": "@asset-example/sprites/sprite-tree1"
+				}
+			]
+		},
+		{
+			"@module": "/script/uengine.js",
+			"@class": "UGameObject",
+			"name": "tree",
+			"layers": {
+				"collision": "field"
+			},
+			"tags": ["block"],
+			"transform": {
+				"position": [300, 300],
+				"size": [50, 35]
+			},
+			"anchor": [0.5, 0.5],
+			"components": [
+				{
+					"@module": "/script/game-rpg.js",
+					"@class": "SpriteRenderer",
+					"name": "spriteRenderer",
+					"sprite": "@asset-example/sprites/sprite-tree2"
+				}
+			]
+		},
+		{
 			"@module": "/script/game-rpg.js",
 			"@class": "Box",
 			"name": "box",

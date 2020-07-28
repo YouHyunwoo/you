@@ -6,7 +6,8 @@
         "@module": "/script/uengine.js",
         "@class": "UImage",
         "image-logo": { "file": "image/logo.png" },
-        "image-stone": { "file": "image/stone.png" }
+        "image-stone": { "file": "image/stone.png" },
+        "image-trees": { "file": "image/trees.png" }
     },
     "sprites": {
         "@module": "/script/uengine.js",
@@ -22,6 +23,18 @@
             "source": [0, 0, null, null],
             "anchor": [0.55, 1],
             "scale": [0.1, 0.1]
+        },
+        "sprite-tree1": {
+            "sheet": "@images/image-trees",
+            "source": [0, 0, 64, 64],
+            "anchor": [0.5, 0.95],
+            "scale": [5, 5]
+        },
+        "sprite-tree2": {
+            "sheet": "@images/image-trees",
+            "source": [64, 0, 64, 64],
+            "anchor": [0.5, 0.95],
+            "scale": [7, 7]
         }
     },
     "objects": {
