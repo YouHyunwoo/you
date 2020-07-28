@@ -9,6 +9,10 @@ let currentInput = null;
 let currentScene = null;
 let currentAsset = null;
 let currentCamera = null;
+let currentScreen = {
+	width: 0,
+	height: 0
+};
 
 export async function fromJSON (json, asset={}) {
 	if (json[0] == '@') {
@@ -101,6 +105,7 @@ export class Engine {
 		this.resizeHandler = () => {
 			let size = Math.min(window.innerWidth, window.innerHeight) - 10;
 
+			currentScreen.width = currentScreen.height = size;
 			this.canvas.width = this.canvas.height = size;
 			this.canvas.style.left = Math.floor((window.innerWidth - this.canvas.width) / 2) + "px";
 			this.canvas.style.top = Math.floor((window.innerHeight - this.canvas.height) / 2) + "px";
@@ -787,6 +792,14 @@ export class UObject extends Module.apply() {
 		this.onCreate();
 	}
 
+	set(data) {
+		for (const prop in data) {
+			this[prop] = data[prop];
+		}
+
+		return this;
+	}
+
 	set order(value) {
 		if (this.parent) {
 			const comps = this.parent.components;
@@ -1195,4 +1208,4 @@ export class UCamera extends UGameObject {
 	onDraw(context) {}
 }
 
-export { currentInput as Input, currentScene as Scene, currentAsset as Asset, currentCamera as Camera };
+export { currentInput as Input, currentScene as Scene, currentAsset as Asset, currentCamera as Camera, currentScreen as Screen };

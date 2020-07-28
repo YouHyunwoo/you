@@ -7,7 +7,9 @@
         "@class": "UImage",
         "image-logo": { "file": "image/logo.png" },
         "image-stone": { "file": "image/stone.png" },
-        "image-trees": { "file": "image/trees.png" }
+        "image-trees": { "file": "image/trees.png" },
+        "image-squirrel": { "file": "image/squirrel.png" },
+        "image-youtube": { "file": "image/youtube.png" }
     },
     "sprites": {
         "@module": "/script/uengine.js",
@@ -35,6 +37,12 @@
             "source": [64, 0, 64, 64],
             "anchor": [0.5, 0.95],
             "scale": [7, 7]
+        },
+        "sprite-squirrel-idle": {
+            "sheet": "@images/image-squirrel",
+            "source": [0, 0, 48, 32],
+            "anchor": [0.25, 0.95],
+            "scale": [1, 1]
         }
     },
     "objects": {

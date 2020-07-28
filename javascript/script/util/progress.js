@@ -1,4 +1,4 @@
-class Progress {
+export class Progress {
 
 	constructor(begin, end, speed, value, rotatable) {
 		this.begin = begin;
@@ -76,5 +76,3 @@ class Progress {
 		return instance;
 	}
 }
-
-export { Progress };

@@ -1,7 +1,8 @@
-import { UScene, UObject, UGameObject, UCamera, Input, Scene, Asset, Camera, fromJSON } from '/script/uengine.js';
+import { UScene, UObject, UGameObject, UCamera, Input, Scene, Asset, Camera, Screen, fromJSON } from '/script/uengine.js';
 import * as Vector from '/script/util/vector.js';
 import * as Module from '/script/util/module.js';
 import * as Ray from '/script/util/ray.js';
+import { Progress } from '/script/util/progress.js';
 
 Module.set(import.meta.url);
 
@@ -48,8 +49,28 @@ export class Arrangement extends Module.apply(UObject) {
 }
 
 export class Map extends Module.apply(UGameObject) {
-	onUpdate(delta) {
-		// generate objects
+	onInit() {
+		for (let i = 0; i < 20; i++) {
+			const tree = new UGameObject('tree');
+
+			tree.layers['collision'] = "field";
+			tree.addTags('block');
+			tree.transform.position = [Math.random(), Math.random()].mulv(this.transform.size);
+			tree.transform.size = [50, 35];
+			tree.anchor = [0.5, 0.5];
+			tree.addComponents(
+				new SpriteRenderer('sprite renderer')
+					.setSprite(Asset.get('@asset-example/sprites/sprite-tree' + parseInt(Math.random() * 2 + 1))),
+				new Stats('stats')
+					.setStats('hp', 10)
+					.setStats('maxhp', 10)
+					.setStats('dp', 1)
+			);
+
+			tree.init();
+	
+			Scene.objects.push(tree);
+		}
 	}
 
 	onDraw(context) {
@@ -59,47 +80,6 @@ export class Map extends Module.apply(UGameObject) {
 		context.fillRect(0, 0, ...this.transform.size);
 
 		context.restore();
-	}
-}
-
-export class Box extends Module.apply(UGameObject) {
-
-	constructor(name) {
-		super(name);
-
-		this.boxSize = [0, 0];
-		this.boxAnchor = [0, 0];
-		this.boxColor = 'white';
-		this.boxFill = false;
-	}
-
-	onDraw(context) {
-		context.save();
-
-		context.strokeStyle = 'blue';
-		context.strokeRect(...this.transform.position.subv(this.transform.size.mulv(this.anchor)), ...this.transform.size);
-
-		if (this.boxFill) {
-			context.fillStyle = this.boxColor;
-			context.fillRect(...this.transform.position.subv(this.boxSize.mulv(this.boxAnchor)), ...this.boxSize);
-		}
-		else {
-			context.strokeStyle = this.boxColor;
-			context.strokeRect(...this.transform.position.subv(this.boxSize.mulv(this.boxAnchor)), ...this.boxSize);
-		}
-		
-		context.restore();
-	}
-
-	static async fromJSON(json) {
-		const box = await super.fromJSON(json);
-		
-		box.boxSize = json.boxSize;
-		box.boxAnchor = json.boxAnchor;
-		box.boxColor = json.boxColor;
-		box.boxFill = json.boxFill;
-
-		return box;
 	}
 }
 
@@ -113,6 +93,12 @@ export class SpriteRenderer extends Module.apply(UObject) {
 
 	onDraw(context) {
 		this.sprite.draw(context, ...this.anchor);
+	}
+
+	setSprite(sprite) {
+		this.sprite = sprite;
+
+		return this;
 	}
 
 	static async fromJSON(json, asset) {
@@ -135,7 +121,9 @@ export class Stats extends Module.apply(UObject) {
 		this.dp = 0;
 		this.speed = 1;
 
+		this.sight = 10;
 		this.attackRange = 10;
+		this.probeRange = 10;
 	}
 
 	setStats(name, value) {
@@ -155,8 +143,34 @@ export class Stats extends Module.apply(UObject) {
 		instance.speed = json.speed || 1;
 
 		instance.attackRange = json.attackRange || 10;
+		instance.probeRange = json['probeRange'] || 10;
 
 		return instance;
+	}
+}
+
+class Moveable extends UObject {
+	constructor(name) {
+		super(name);
+
+		this.destination = null;
+	}
+
+	onUpdate(delta) {
+		const object = this.parent;
+
+		if (this.destination != null) {
+			const pos = object.transform.position;
+			const diff = this.destination.subv(pos);
+			const sq = diff.dotv(diff);
+
+			if ((this.speed * delta) ** 2 < sq) {
+				object.transform.position = pos.addv(diff.muls(this.speed * delta).divs(Math.sqrt(sq)));
+			}
+			else {
+				object.transform.position = this.destination;
+			}
+		}
 	}
 }
 
@@ -170,7 +184,6 @@ export class PlayerMove extends Module.apply(UObject) {
 
 		if (Input.key.press('d')) {
 			velocity[0] = 1;
-			// this.parent.spriteRenderer.sprite = Asset.get("@asset-example/sprites/sprite-stone");
 		}
 
 		if (Input.key.press('s')) {
@@ -254,31 +267,53 @@ export class PlayerView extends Module.apply(UObject) {
 	}
 }
 
+export class PlayerProbe extends Module.apply(UObject) {
+	onUpdate(delta) {
+
+	}
+}
+
 // Monsters
 export class RandomCharacterGenerator extends Module.apply(UObject) {
 	onInit() {
 		this.map = Scene.find('map', true);
-		this.characters = [];
+		this.count = 0;
 	}
 
 	onUpdate(delta) {
-		// if (Math.random() < 0.01) {
-		// 	const character = new Character('character');
+		if (Math.random() < 0.01 && this.count < 1) {
+			const character = new Character('character');
 
-		// 	character.layers['collision'] = 'field';
-		// 	character.transform.position = [Math.random(), Math.random()].mulv(this.map.transform.size);
-		// 	character.transform.size = [50, 35];
-		// 	character.anchor = [0.5, 0.5];
+			character.layers['collision'] = 'field';
+			character.transform.position = [Math.random(), Math.random()].mulv(this.map.transform.size);
+			character.transform.size = [50, 35];
+			character.anchor = [0.5, 0.5];
 
-		// 	character.tall = Math.random() * 20 + 40;
-		// 	character.fat = Math.random() * 20 + 20;
+			character.tall = Math.random() * 20 + 40;
+			character.fat = Math.random() * 20 + 20;
 
-		// 	character.addComponents(
-		// 		new Stats('stats').setStats('hp', 10).setStats('maxhp', 10)
-		// 	);
+			character.addComponents(
+				new Moveable('moveable'),
+				new Stats('stats')
+					.set({
+						hp: 3,
+						maxhp: 3,
+						ap: 1,
+						sight: 100
+					}),
+				new SpriteRenderer('sprite renderer')
+					.setSprite(Asset.get('@asset-example/sprites/sprite-squirrel-idle')),
+				new AI('ai')
+					.set({
+						aggressive: 0.3
+					})
+			);
 
-		// 	Scene.objects.push(character);
-		// }
+			character.init();
+			console.log('new character');
+			Scene.objects.push(character);
+			this.count += 1;
+		}
 	}
 }
 
@@ -293,15 +328,16 @@ export class Character extends Module.apply(UGameObject) {
 	}
 
 	onUpdate(delta) {
-		this.age += this.speed * delta;
+		console.log('what?: ' + this.age);
+		// this.age += this.speed * delta;
 
-		this.tall += this.speed * delta * 0.05;
-		this.fat += this.speed * delta * 0.02;
+		// this.tall += this.speed * delta * 0.05;
+		// this.fat += this.speed * delta * 0.02;
 
-		if (this.age > 100) {
-			console.log('dead');
-			this.dispose();
-		}
+		// if (this.age > 100) {
+		// 	console.log('dead');
+		// 	this.dispose();
+		// }
 	}
 
 	onDraw(context) {
@@ -325,6 +361,139 @@ export class Character extends Module.apply(UGameObject) {
 	}
 }
 
+class AI extends UObject {
+	constructor(name) {
+		super(name);
+
+		this.state = 'idle';
+
+		this.aggressive = 0; // probability
+		this.aggressiveImage = Asset.get('@asset-example/images/image-youtube');
+
+		this.attackProgress = new Progress(0, 1, 1, 1, { begin: false, end: false });
+
+		this.target = null;
+	}
+
+	onInit() {
+		this.map = Scene.find('map');
+	}
+
+	onUpdate(delta) {
+		if (this.state == 'idle') {
+			const players = Scene.findAll('#player', true);
+			
+			if (players) {
+				for (const object of players) {
+					if (object == this.parent) {
+						continue;
+					}
+	
+					const diff = object.transform.position.subv(this.parent.transform.position);
+	
+					if (diff.dotv(diff) <= this.sight ** 2 && this.target == null) {
+						let prob = Math.random();
+	
+						if (Math.abs(this.aggressive) > prob) {
+							this.target = object;
+							this.parent.moveable.destination = object.transform.position;
+	
+							this.state = this.aggressive < 0 ? 'aggressive' : 'follow';
+	
+							// console.log('idle ->' + this.state);
+						}
+					}
+				}
+			}
+
+			let prob = Math.random();
+
+			if (prob < 0.01) {
+				console.log('idle -> explore')
+				this.parent.moveable.destination = [Math.random(), Math.random()].mulv(this.map.transform.size);
+				this.state = 'explore';
+			}
+		}
+		else if (this.state == 'explore') {
+			let prob = Math.random();
+
+			if (prob < 0.01) {
+				// console.log('exp -> idle')
+				this.parent.moveable.destination = null;
+				this.state = 'idle';
+			}
+		}
+		else if (this.state == 'aggressive') {
+			const diff = this.target.transform.position.subv(this.parent.transform.position);
+			const sq = diff.dotv(diff);
+
+			this.attackProgress.update(delta);
+
+			if (this.parent.stats.sight ** 2 < sq) {
+				// console.log('aggressive -> idle')
+				this.target = null;
+				this.parent.moveable.destination = null;
+				this.attackProgress.current = 0;
+				this.state = 'idle';
+			}
+			else if (this.parent.stats.attackRange ** 2 >= sq) {
+				if (this.target.stats) {
+					if (this.attackProgress.isFull) {
+						// console.log('attack!')
+						this.target.stats.hp -= this.parent.stats.ap - this.target.stats.dp;
+						this.attackProgress.current = 0;
+					}
+				}
+
+				this.parent.moveable.destination = null;
+			}
+			else {
+				this.parent.moveable.destination = this.target.transform.position;
+			}
+		}
+		else if (this.state == 'follow') {
+			let diff = this.target.transform.position.subv(this.parent.transform.position);
+			let sq = diff.dotv(diff);
+
+			if (this.sight ** 2 < sq) {
+				// console.log('follow -> idle')
+				this.target = null;
+				this.parent.moveable.destination = null;
+				this.state = 'idle'
+			}
+			else if (this.parent.transform.size[0] ** 2 >= sq) {
+				this.parent.moveable.destination = null;
+			}
+			else {
+				this.parent.moveable.destination = this.target.transform.position;
+			}
+		}
+	}
+
+	onDraw(context) {
+		if (true) {
+			context.save();
+
+			context.fillStyle = 'rgba(0, 0, 255, 0.2)';
+
+			context.beginPath();
+			context.arc(0, 0, this.parent.stats.sight, 0, 2 * Math.PI);
+			context.fill();
+
+			context.fillStyle = 'rgba(0, 255, 0, 0.2)';
+
+			context.beginPath();
+			context.arc(0, 0, this.parent.stats.attackRange, 0, 2 * Math.PI);
+			context.fill();
+
+			context.restore();
+		}
+
+		if (this.state == 'aggressive') {
+			context.drawImage(this.aggressiveImage.raw, -20, -this.parent.transform.size[1] / 2 - 40, 40, 20);
+		}
+	}
+}
 
 
 
