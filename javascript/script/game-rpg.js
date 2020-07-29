@@ -1,4 +1,4 @@
-import { UScene, UObject, UGameObject, UCamera, Input, Scene, Asset, Camera, Screen, fromJSON } from '/script/uengine.js';
+import { UState, UScene, UObject, UGameObject, UCamera, Input, Scene, Asset, Camera, Screen, fromJSON } from '/script/uengine.js';
 import * as Vector from '/script/util/vector.js';
 import * as Module from '/script/util/module.js';
 import * as Ray from '/script/util/ray.js';
@@ -200,6 +200,33 @@ export class Moveable extends Module.apply(UObject) {
 	}
 }
 
+export class PlayerView extends Module.apply(UObject) {
+	onInit() {
+		this.cameraTf = Camera.transform;
+		this.playerTf = this.parent.transform;
+
+		this.size = this.cameraTf.size;
+		this.scaleStep = 0;
+	}
+
+	onUpdate(delta) {
+		this.cameraTf.position = this.playerTf.position.slice();
+
+		const mouse = Input.mouse;
+
+		if (mouse.wheel) {
+			if (mouse.wheel[1] > 0) {
+				this.scaleStep = Math.max(-5, this.scaleStep - 1);
+			}
+			else {
+				this.scaleStep = Math.min(5, this.scaleStep + 1);
+			}
+
+			this.cameraTf.size = this.size.divs(Math.pow(1.3, this.scaleStep));
+		}
+	}
+}
+
 export class PlayerMove extends Module.apply(UObject) {
 	onUpdate(delta) {
 		const velocity = [0, 0];
@@ -266,40 +293,33 @@ export class PlayerMove extends Module.apply(UObject) {
 	}
 }
 
-export class PlayerView extends Module.apply(UObject) {
-	onInit() {
-		this.cameraTf = Camera.transform;
-		this.playerTf = this.parent.transform;
+export class PlayerStateIdle extends Module.apply(UState) {
+}
 
-		this.size = this.cameraTf.size;
-		this.scaleStep = 0;
-	}
+export class PlayerStateMove extends Module.apply(UState) {
+	request(message) {
+		if (message) {
+			if (message.type == 'move') {
 
-	onUpdate(delta) {
-		this.cameraTf.position = this.playerTf.position.slice();
-
-		const mouse = Input.mouse;
-
-		if (mouse.wheel) {
-			if (mouse.wheel[1] > 0) {
-				this.scaleStep = Math.max(-5, this.scaleStep - 1);
 			}
-			else {
-				this.scaleStep = Math.min(5, this.scaleStep + 1);
-			}
-
-			this.cameraTf.size = this.size.divs(Math.pow(1.3, this.scaleStep));
 		}
 	}
 }
 
-export class PlayerProbe extends Module.apply(UObject) {
-	onUpdate(delta) {
+export class PlayerStateProbe extends Module.apply(UState) {
+	onEnter() {
+		this.progress = new Progress(0, 1, 1, 0);
+	}
 
+	onUpdate(delta) {
+		this.progress.update(delta);
+
+		if (this.progress.isFull) {
+			this.transit('idle');
+		}
 	}
 }
 
-// Monsters
 export class RandomCharacterGenerator extends Module.apply(UObject) {
 	onInit() {
 		this.map = Scene.find('map', true);
@@ -309,55 +329,26 @@ export class RandomCharacterGenerator extends Module.apply(UObject) {
 	onUpdate(delta) {
 		if (Math.random() < 0.01 && this.count < 1) {
 			const character = Asset.get('@asset-example/objects/squirrel').clone();
-			// const character = new Character('character');
 
-			// character.layers['collision'] = 'field';
-			// character.tags = ['block']
 			character.transform.position = [Math.random(), Math.random()].mulv(this.map.transform.size);
-			// character.transform.size = [50, 35];
-			// character.anchor = [0.5, 0.5];
-
-			character.tall = Math.random() * 20 + 40;
-			character.fat = Math.random() * 20 + 20;
-
-			// character.addComponents(
-			// 	new Moveable('moveable'),
-			// 	new Stats('stats')
-			// 		.set({
-			// 			hp: 3,
-			// 			maxhp: 3,
-			// 			ap: 1,
-			// 			sight: 100,
-			// 			speed: 100,
-			// 		}),
-			// 	new SpriteRenderer('sprite renderer')
-			// 		.setSprite(Asset.get('@asset-example/sprites/sprite-squirrel-idle')),
-			// 	new AI('ai')
-			// 		.set({
-			// 			aggressive: -0.3
-			// 		})
-			// );
 
 			character.init();
 
 			Scene.objects.push(character);
 			this.count += 1;
-
-			console.log('new character');
-			console.log(character);
 		}
 	}
 }
 
 export class Character extends Module.apply(UGameObject) {
-	constructor(name) {
-		super(name);
+	// constructor(name) {
+	// 	super(name);
 
-		this.tall = 0;
-		this.fat = 0;
-		this.age = 0;
-		this.speed = 10;
-	}
+	// 	this.tall = 0;
+	// 	this.fat = 0;
+	// 	this.age = 0;
+	// 	this.speed = 10;
+	// }
 
 	onUpdate(delta) {
 		// this.age += this.speed * delta;
@@ -372,21 +363,21 @@ export class Character extends Module.apply(UGameObject) {
 	}
 
 	onDraw(context) {
-		super.onDraw(context);
+		// super.onDraw(context);
 
-		context.save();
+		// context.save();
 
-		context.strokeStyle = `rgb(255, ${255 - this.age / 100 * 255}, ${255 - this.age / 100 * 255})`;
-		context.strokeRect(-this.fat / 2, -this.tall, this.fat, this.tall);
+		// context.strokeStyle = `rgb(255, ${255 - this.age / 100 * 255}, ${255 - this.age / 100 * 255})`;
+		// context.strokeRect(-this.fat / 2, -this.tall, this.fat, this.tall);
 
-		context.restore();
+		// context.restore();
 	}
 
 	static async fromJSON(json, asset) {
 		const character = await super.fromJSON(json, asset);
 
-		character.tall = json.tall;
-		character.fat = json.fat;
+		// character.tall = json.tall;
+		// character.fat = json.fat;
 
 		return character;
 	}
@@ -417,14 +408,12 @@ export class AI extends Module.apply(UObject) {
 		clone.attackProgress = this.attackProgress.clone();
 		
 		clone.target = this.target == null ? null : this.target.slice();
-		
 
 		return clone;
 	}
 
 	onInit() {
 		this.map = Scene.find('map');
-		this.aggressiveImage = Asset.get('@asset-example/images/image-youtube');
 	}
 
 	onUpdate(delta) {
@@ -441,12 +430,12 @@ export class AI extends Module.apply(UObject) {
 	
 					if (diff.dotv(diff) <= this.parent.stats.sight ** 2 && this.target == null) {
 						let prob = Math.random();
-						console.log('dd');
 	
 						if (Math.abs(this.aggressive) > prob) {
 							this.target = object;
 							this.parent.moveable.destination = object.transform.position;
-	
+							this.parent.spriteRenderer.sprite = Asset.get('@asset-example/sprites/sprite-squirrel-move');
+
 							this.state = this.aggressive < 0 ? 'aggressive' : 'follow';
 	
 							// console.log('idle ->' + this.state);
@@ -554,8 +543,29 @@ export class AI extends Module.apply(UObject) {
 		}
 
 		if (this.state == 'aggressive') {
-			context.drawImage(this.aggressiveImage.raw, -20, -this.parent.transform.size[1] / 2 - 40, 40, 20);
+			if (this.aggressiveImage) {
+				this.aggressiveImage.draw(context, -20, -this.parent.transform.size[1] / 2 - 40, 40, 20);
+			}
 		}
+	}
+
+	static async fromJSON(json, asset) {
+		const ai = await super.fromJSON(json, asset);
+
+		ai.state = json['state'] || 'idle';
+		ai.aggressive = json['aggressive'] || 0;
+
+		if (json['aggressiveImage']) {
+			ai.aggressiveImage = asset.get(json['aggressiveImage']);
+		}
+
+		if (json['attackProgress']) {
+			ai.attackProgress = await fromJSON(json['attackProgress']);
+		}
+
+		ai.target = null;
+
+		return ai;
 	}
 }
 

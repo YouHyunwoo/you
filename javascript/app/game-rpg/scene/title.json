@@ -45,6 +45,28 @@
 					"speed": 500
 				},
 				{
+					"@module": "/script/uengine.js",
+					"@class": "UContext",
+					"name": "state",
+					"components": [
+						{
+							"@module": "/script/game-rpg.js",
+							"@class": "PlayerStateIdle",
+							"name": "idle"
+						},
+						{
+							"@module": "/script/game-rpg.js",
+							"@class": "PlayerStateMove",
+							"name": "move"
+						},
+						{
+							"@module": "/script/game-rpg.js",
+							"@class": "PlayerStateProbe",
+							"name": "probe"
+						}
+					]
+				},
+				{
 					"@module": "/script/game-rpg.js",
 					"@class": "PlayerMove"
 				},

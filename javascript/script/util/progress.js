@@ -1,3 +1,5 @@
+import * as Clone from "/script/util/clone.js";
+
 export class Progress {
 
 	constructor(begin, end, speed, value, rotatable) {
@@ -12,13 +14,10 @@ export class Progress {
 	clone() {
 		const clone = new this.constructor(this.begin, this.end, this.speed, this.current);
 
-		for (const p in this.rotatable) {
-			clone.rotatable[p] = this.rotatable[p];
-		}
-		
-		for (const p in this.exceed) {
-			clone.exceed[p] = this.exceed[p];
-		}
+		clone.rotatable = this.rotatable.clone();
+		clone.exceed = this.exceed.clone();
+
+		return clone;
 	}
 
 	update(delta) {
@@ -44,13 +43,6 @@ export class Progress {
 
 	get isFull() { return this.exceed.end; }
 	get isEmpty() { return this.exceed.begin; }
-
-	// static fromJSON(json) {
-	// 	let o = JSON.parse(json);
-	// 	let r = new Progress(o.begin, o.end, o.speed, o.current, o.rotatble);
-	// 	r.exceed = o.exceed;
-	// 	return r;
-	// }
 
 	setBegin(begin) {
 		this.begin = begin;
@@ -80,11 +72,11 @@ export class Progress {
 		return this;
 	}
 
-	static fromJSON(object) {
-		let instance = new Progress(object.begin, object.end, object.speed, object.current, object.rotatable);
+	static fromJSON(json) {
+		let progress = new this(json.begin, json.end, json.speed, json.current, json.rotatable);
 
-		instance.exceed = object.exceed;
+		progress.exceed = json.exceed;
 
-		return instance;
+		return progress;
 	}
 }

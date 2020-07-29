@@ -169,7 +169,8 @@
                     "@module": "/script/game-rpg.js",
                     "@class": "AI",
                     "name": "ai",
-                    "aggressive": -0.3
+                    "aggressive": -0.3,
+                    "aggressiveImage": "@images/image-youtube"
                 }
             ]
         }

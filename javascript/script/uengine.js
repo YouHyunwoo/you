@@ -1140,14 +1140,6 @@ export class UContext extends Module.apply(UObject) {
 			state: this.state.name
 		};
 	}
-
-	static fromJSON(object) {
-		let instance = super.fromJSON(object);
-
-		instance.state = instance.findComponent(object.state);
-
-		return instance;
-	}
 }
 
 export class UGameObject extends Module.apply(UObject) {
