@@ -9,6 +9,18 @@ export class Progress {
 		this.exceed = { begin: false, end: false };
 	}
 
+	clone() {
+		const clone = new this.constructor(this.begin, this.end, this.speed, this.current);
+
+		for (const p in this.rotatable) {
+			clone.rotatable[p] = this.rotatable[p];
+		}
+		
+		for (const p in this.exceed) {
+			clone.exceed[p] = this.exceed[p];
+		}
+	}
+
 	update(delta) {
 		let next = this.current + this.speed * delta;
 

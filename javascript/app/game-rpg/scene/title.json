@@ -42,38 +42,20 @@
 					"@module": "/script/game-rpg.js",
 					"@class": "Stats",
 					"name": "stats",
-					"speed": 1000
+					"speed": 500
 				},
 				{
 					"@module": "/script/game-rpg.js",
 					"@class": "PlayerMove"
+				},
+				{
+					"@module": "/script/game-rpg.js",
+					"@class": "PlayerView"
 				}
 			],
 			"transform": {
 				"position": [100, 100],
 				"size": [50, 35]
-			},
-			"anchor": [0.5, 0.5]
-		},
-		{
-			"@module": "/script/uengine.js",
-			"@class": "UGameObject",
-			"name": "stone",
-			"layers": {
-				"collision": "field"
-			},
-			"tags": [],
-			"components": [
-				{
-					"@module": "/script/game-rpg.js",
-					"@class": "SpriteRenderer",
-					"name": "sprite renderer",
-					"sprite": "@asset-example/sprites/sprite-stone"
-				}
-			],
-			"transform": {
-				"position": [30, 30],
-				"size": [10, 7]
 			},
 			"anchor": [0.5, 0.5]
 		},
@@ -85,12 +67,6 @@
 			"@module": "/script/uengine.js",
 			"@class": "UCamera",
 			"name": "camera",
-			"components": [
-				{
-					"@module": "/script/game-rpg.js",
-					"@class": "PlayerView"
-				}
-			],
 			"transform": {
 				"position": [0, 0],
 				"size": [500, 500]

@@ -90,7 +90,7 @@ export class Engine {
 			currentInput = listener.input;
 			currentAsset = listener.asset;
 			currentScene = listener.scene.get();
-			currentCamera = listener.scene.camera;
+			currentCamera = listener.scene.get().camera;
 			
 			listener.loop(delta);
 		});
@@ -132,7 +132,7 @@ export class Engine {
 		currentInput = this.input;
 		currentAsset = app.assets;
 		currentScene = app.entry;
-		currentCamera = this.scene.camera;
+		currentCamera = app.entry.camera;
 
 		this.asset = app.assets;
 		this.scene.init(app.entry);
@@ -265,15 +265,19 @@ class Asset {
 				});
 			}
 			else {
-				Object.keys(json[p]).forEach(id => {
+				const result = await Promise.all(
+					Object.keys(json[p]).map(async id => await fromJSON(json[p][id], asset))
+				);
+				
+				Object.keys(json[p]).forEach((id, idx) => {
 					Object.defineProperty(asset[p], id, {
-						enumerable:true,
-						value: json[p][id]
+						enumerable: true,
+						value: result[idx]
 					});
 				});
 			}
 		}
-
+		console.log(asset);
 		return asset;
 	}
 }
@@ -715,6 +719,18 @@ export class USprite {
 		});
 	}
 
+	clone() {
+		const clone = new this.constructor(this.id, this.sheet);
+
+		if (clone) {
+			clone.source = this.source.slice();
+			clone.anchor = this.anchor.slice();
+			clone.scale = this.scale.slice();
+		}
+
+		return clone;
+	}
+
 	dispose() {
 		Object.defineProperty(this, 'sheet', {
 			value: null
@@ -780,8 +796,8 @@ export class UObject extends Module.apply() {
 		});
 
 		Object.defineProperty(this, 'parent', {
-			value: null,
-			writable: true
+			writable: true,
+			value: null
 		});
 
 		this.name = name;
@@ -790,6 +806,18 @@ export class UObject extends Module.apply() {
 		this.components = [];
 
 		this.onCreate();
+	}
+
+	clone() {
+		if (this.disposed) { return null; }
+
+		const clone = new this.constructor(this.name);
+
+		clone.enable = this.enable;
+		clone.tags = this.tags.slice();
+		clone.addComponents(...this.components.map(component => component.clone()));
+
+		return clone;
 	}
 
 	set(data) {
@@ -954,6 +982,8 @@ export class UObject extends Module.apply() {
 		Object.defineProperty(this, 'disposed', {
 			value: true
 		});
+
+		this.enable = false;
 
 		this.onPreDispose();
 
@@ -1132,6 +1162,27 @@ export class UGameObject extends Module.apply(UObject) {
 		};
 
 		this.anchor = [0, 0];
+	}
+
+	clone() {
+		const clone = super.clone();
+
+		if (clone) {
+			clone.layers = {};
+
+			for (const layer in this.layers) {
+				clone.layers[layer] = this.layers[layer];
+			}
+			
+			clone.transform = {
+				position: this.transform.position.slice(),
+				size: this.transform.size.slice()
+			}
+
+			clone.anchor = this.anchor.slice();
+		}
+
+		return clone;
 	}
 
 	draw(context, ...args) {

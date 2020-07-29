@@ -18,23 +18,28 @@ export class TitleScene extends Module.apply(UScene) {
 
 export class Arrangement extends Module.apply(UObject) {
 	onUpdate(delta) {
+		const temp = Scene.objects.slice();
+		
+		Scene.objects = Scene.objects.filter(e => e instanceof UGameObject && e.layers[this.layerType]);
+
 		Scene.objects.sort((a, b) => {
-			if ([a, b].every(x => x instanceof UGameObject)) {
-				const aLayer = this.layerOrder.indexOf(a.layers[this.layerType]);
-				const bLayer = this.layerOrder.indexOf(b.layers[this.layerType]);
-				
-				if (aLayer == -1 || bLayer == -1) {
-					return 0;
-				}
-
-				if (aLayer == bLayer) {
-					return a.transform.position[1] - b.transform.position[1];
-				}
-
-				return aLayer - bLayer;
+			const al = this.layerOrder.indexOf(a.layers[this.layerType]);
+			const bl = this.layerOrder.indexOf(b.layers[this.layerType]);
+			
+			if (al < bl) {
+				return -1;
 			}
+			else if (al > bl) {
+				return 1;
+			}
+			
+			return a.transform.position[1] - b.transform.position[1];
+		});
 
-			return 0;
+		temp.forEach((e, i) => {
+			if (!(e instanceof UGameObject && e.layers[this.layerType])) {
+				Scene.objects.splice(i, 0, e);
+			}
 		});
 	}
 
@@ -51,25 +56,22 @@ export class Arrangement extends Module.apply(UObject) {
 export class Map extends Module.apply(UGameObject) {
 	onInit() {
 		for (let i = 0; i < 20; i++) {
-			const tree = new UGameObject('tree');
-
-			tree.layers['collision'] = "field";
-			tree.addTags('block');
+			const tree = Asset.get('@asset-example/objects/tree-' + parseInt(Math.random() * 2)).clone();
+			
 			tree.transform.position = [Math.random(), Math.random()].mulv(this.transform.size);
-			tree.transform.size = [50, 35];
-			tree.anchor = [0.5, 0.5];
-			tree.addComponents(
-				new SpriteRenderer('sprite renderer')
-					.setSprite(Asset.get('@asset-example/sprites/sprite-tree' + parseInt(Math.random() * 2 + 1))),
-				new Stats('stats')
-					.setStats('hp', 10)
-					.setStats('maxhp', 10)
-					.setStats('dp', 1)
-			);
-
 			tree.init();
 	
 			Scene.objects.push(tree);
+		}
+
+		for (let i = 0; i < 100; i++) {
+			const stone = Asset.get('@asset-example/objects/stone').clone();
+
+			stone.transform.position = [Math.random(), Math.random()].mulv(this.transform.size);
+			stone.spriteRenderer.sprite.scale = [1, 1].muls(Math.random() * 0.05 + 0.01);
+			stone.init();
+
+			Scene.objects.push(stone);
 		}
 	}
 
@@ -86,6 +88,16 @@ export class Map extends Module.apply(UGameObject) {
 export class SpriteRenderer extends Module.apply(UObject) {
 	
 	sprite;
+
+	clone() {
+		const clone = super.clone();
+
+		if (clone) {
+			clone.sprite = this.sprite.clone();
+		}
+
+		return clone;
+	}
 
 	onInit() {
 		this.anchor = this.parent.anchor;
@@ -124,6 +136,18 @@ export class Stats extends Module.apply(UObject) {
 		this.sight = 10;
 		this.attackRange = 10;
 		this.probeRange = 10;
+
+		this['@clone'] = ['hp', 'maxhp', 'mp', 'ap', 'dp', 'speed', 'sight', 'attackRange', 'probeRange'];
+	}
+
+	clone() {
+		const clone = super.clone();
+
+		for (const p of this['@clone']) {
+			clone[p] = this[p];
+		}
+
+		return clone;
 	}
 
 	setStats(name, value) {
@@ -135,21 +159,22 @@ export class Stats extends Module.apply(UObject) {
 	static async fromJSON(json) {
 		const instance = await super.fromJSON(json);
 
-		instance.hp = json.hp || 0;
-		instance.maxhp = json.maxhp || 0;
-		instance.mp = json.mp || 0;
-		instance.ap = json.ap || 0;
-		instance.dp = json.dp || 0;
-		instance.speed = json.speed || 1;
+		instance.hp = json['hp'] || 0;
+		instance.maxhp = json['maxhp'] || 0;
+		instance.mp = json['mp'] || 0;
+		instance.ap = json['ap'] || 0;
+		instance.dp = json['dp'] || 0;
+		instance.speed = json['speed'] || 1;
 
-		instance.attackRange = json.attackRange || 10;
+		instance.sight = json['sight'] || 10;
+		instance.attackRange = json['attackRange'] || 10;
 		instance.probeRange = json['probeRange'] || 10;
 
 		return instance;
 	}
 }
 
-class Moveable extends UObject {
+export class Moveable extends Module.apply(UObject) {
 	constructor(name) {
 		super(name);
 
@@ -163,9 +188,10 @@ class Moveable extends UObject {
 			const pos = object.transform.position;
 			const diff = this.destination.subv(pos);
 			const sq = diff.dotv(diff);
+			const speed = object.stats.speed * delta;
 
-			if ((this.speed * delta) ** 2 < sq) {
-				object.transform.position = pos.addv(diff.muls(this.speed * delta).divs(Math.sqrt(sq)));
+			if (speed ** 2 < sq) {
+				object.transform.position = pos.addv(diff.muls(speed).divs(Math.sqrt(sq)));
 			}
 			else {
 				object.transform.position = this.destination;
@@ -242,15 +268,15 @@ export class PlayerMove extends Module.apply(UObject) {
 
 export class PlayerView extends Module.apply(UObject) {
 	onInit() {
-		this.cameraTf = this.parent.transform;
-		this.playerTf = Scene.find('player', true);
+		this.cameraTf = Camera.transform;
+		this.playerTf = this.parent.transform;
 
 		this.size = this.cameraTf.size;
 		this.scaleStep = 0;
 	}
 
 	onUpdate(delta) {
-		this.cameraTf.position = [...this.playerTf.transform.position];
+		this.cameraTf.position = this.playerTf.position.slice();
 
 		const mouse = Input.mouse;
 
@@ -282,37 +308,43 @@ export class RandomCharacterGenerator extends Module.apply(UObject) {
 
 	onUpdate(delta) {
 		if (Math.random() < 0.01 && this.count < 1) {
-			const character = new Character('character');
+			const character = Asset.get('@asset-example/objects/squirrel').clone();
+			// const character = new Character('character');
 
-			character.layers['collision'] = 'field';
+			// character.layers['collision'] = 'field';
+			// character.tags = ['block']
 			character.transform.position = [Math.random(), Math.random()].mulv(this.map.transform.size);
-			character.transform.size = [50, 35];
-			character.anchor = [0.5, 0.5];
+			// character.transform.size = [50, 35];
+			// character.anchor = [0.5, 0.5];
 
 			character.tall = Math.random() * 20 + 40;
 			character.fat = Math.random() * 20 + 20;
 
-			character.addComponents(
-				new Moveable('moveable'),
-				new Stats('stats')
-					.set({
-						hp: 3,
-						maxhp: 3,
-						ap: 1,
-						sight: 100
-					}),
-				new SpriteRenderer('sprite renderer')
-					.setSprite(Asset.get('@asset-example/sprites/sprite-squirrel-idle')),
-				new AI('ai')
-					.set({
-						aggressive: 0.3
-					})
-			);
+			// character.addComponents(
+			// 	new Moveable('moveable'),
+			// 	new Stats('stats')
+			// 		.set({
+			// 			hp: 3,
+			// 			maxhp: 3,
+			// 			ap: 1,
+			// 			sight: 100,
+			// 			speed: 100,
+			// 		}),
+			// 	new SpriteRenderer('sprite renderer')
+			// 		.setSprite(Asset.get('@asset-example/sprites/sprite-squirrel-idle')),
+			// 	new AI('ai')
+			// 		.set({
+			// 			aggressive: -0.3
+			// 		})
+			// );
 
 			character.init();
-			console.log('new character');
+
 			Scene.objects.push(character);
 			this.count += 1;
+
+			console.log('new character');
+			console.log(character);
 		}
 	}
 }
@@ -328,7 +360,6 @@ export class Character extends Module.apply(UGameObject) {
 	}
 
 	onUpdate(delta) {
-		console.log('what?: ' + this.age);
 		// this.age += this.speed * delta;
 
 		// this.tall += this.speed * delta * 0.05;
@@ -351,8 +382,8 @@ export class Character extends Module.apply(UGameObject) {
 		context.restore();
 	}
 
-	static async fromJSON(json) {
-		const character = await super.fromJSON(json);
+	static async fromJSON(json, asset) {
+		const character = await super.fromJSON(json, asset);
 
 		character.tall = json.tall;
 		character.fat = json.fat;
@@ -361,22 +392,39 @@ export class Character extends Module.apply(UGameObject) {
 	}
 }
 
-class AI extends UObject {
+export class AI extends Module.apply(UObject) {
 	constructor(name) {
 		super(name);
 
 		this.state = 'idle';
 
 		this.aggressive = 0; // probability
-		this.aggressiveImage = Asset.get('@asset-example/images/image-youtube');
+		this.aggressiveImage = null;
 
 		this.attackProgress = new Progress(0, 1, 1, 1, { begin: false, end: false });
 
 		this.target = null;
 	}
 
+	clone() {
+		const clone = super.clone();
+
+		clone.state = this.state;
+
+		clone.aggressive = this.aggressive;
+		clone.aggressiveImage = this.aggressiveImage;
+
+		clone.attackProgress = this.attackProgress.clone();
+		
+		clone.target = this.target == null ? null : this.target.slice();
+		
+
+		return clone;
+	}
+
 	onInit() {
 		this.map = Scene.find('map');
+		this.aggressiveImage = Asset.get('@asset-example/images/image-youtube');
 	}
 
 	onUpdate(delta) {
@@ -391,8 +439,9 @@ class AI extends UObject {
 	
 					const diff = object.transform.position.subv(this.parent.transform.position);
 	
-					if (diff.dotv(diff) <= this.sight ** 2 && this.target == null) {
+					if (diff.dotv(diff) <= this.parent.stats.sight ** 2 && this.target == null) {
 						let prob = Math.random();
+						console.log('dd');
 	
 						if (Math.abs(this.aggressive) > prob) {
 							this.target = object;
@@ -409,8 +458,10 @@ class AI extends UObject {
 			let prob = Math.random();
 
 			if (prob < 0.01) {
-				console.log('idle -> explore')
+				// console.log('idle -> explore')
 				this.parent.moveable.destination = [Math.random(), Math.random()].mulv(this.map.transform.size);
+				this.parent.spriteRenderer.sprite = Asset.get('@asset-example/sprites/sprite-squirrel-move');
+
 				this.state = 'explore';
 			}
 		}
@@ -420,6 +471,7 @@ class AI extends UObject {
 			if (prob < 0.01) {
 				// console.log('exp -> idle')
 				this.parent.moveable.destination = null;
+				this.parent.spriteRenderer.sprite = Asset.get('@asset-example/sprites/sprite-squirrel-idle');
 				this.state = 'idle';
 			}
 		}
@@ -434,6 +486,7 @@ class AI extends UObject {
 				this.target = null;
 				this.parent.moveable.destination = null;
 				this.attackProgress.current = 0;
+				this.parent.spriteRenderer.sprite = Asset.get('@asset-example/sprites/sprite-squirrel-idle');
 				this.state = 'idle';
 			}
 			else if (this.parent.stats.attackRange ** 2 >= sq) {
@@ -459,13 +512,24 @@ class AI extends UObject {
 				// console.log('follow -> idle')
 				this.target = null;
 				this.parent.moveable.destination = null;
+				this.parent.spriteRenderer.sprite = Asset.get('@asset-example/sprites/sprite-squirrel-idle');
 				this.state = 'idle'
 			}
 			else if (this.parent.transform.size[0] ** 2 >= sq) {
 				this.parent.moveable.destination = null;
 			}
 			else {
-				this.parent.moveable.destination = this.target.transform.position;
+				const prob = Math.random();
+				
+				if (prob < 0.005) {
+					this.target = null;
+					this.parent.spriteRenderer.sprite = Asset.get('@asset-example/sprites/sprite-squirrel-idle');
+					this.parent.moveable.destination = null;
+					this.state = 'idle';
+				}
+				else {
+					this.parent.moveable.destination = this.target.transform.position;
+				}
 			}
 		}
 	}

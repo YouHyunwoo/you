@@ -26,13 +26,13 @@
             "anchor": [0.55, 1],
             "scale": [0.1, 0.1]
         },
-        "sprite-tree1": {
+        "sprite-tree-0": {
             "sheet": "@images/image-trees",
             "source": [0, 0, 64, 64],
             "anchor": [0.5, 0.95],
             "scale": [5, 5]
         },
-        "sprite-tree2": {
+        "sprite-tree-1": {
             "sheet": "@images/image-trees",
             "source": [64, 0, 64, 64],
             "anchor": [0.5, 0.95],
@@ -43,8 +43,135 @@
             "source": [0, 0, 48, 32],
             "anchor": [0.25, 0.95],
             "scale": [1, 1]
+        },
+        "sprite-squirrel-move": {
+            "sheet": "@images/image-squirrel",
+            "source": [0, 32, 48, 32],
+            "anchor": [0.25, 0.95],
+            "scale": [1, 1]
         }
     },
     "objects": {
+        "tree-0": {
+            "@module": "/script/uengine.js",
+            "@class": "UGameObject",
+            "name": "tree",
+            "layers": {
+                "collision": "field"
+            },
+            "tags": ["block"],
+            "transform": {
+                "size": [50, 35]
+            },
+            "anchor": [0.5, 0.5],
+            "components": [
+                {
+                    "@module": "/script/game-rpg.js",
+                    "@class": "SpriteRenderer",
+                    "name": "sprite renderer",
+                    "sprite": "@sprites/sprite-tree-0"
+                },
+                {
+                    "@module": "/script/game-rpg.js",
+                    "@class": "Stats",
+                    "name": "stats",
+                    "hp": 10,
+                    "maxhp": 10,
+                    "dp": 1
+                }
+            ]
+        },
+        "tree-1": {
+            "@module": "/script/uengine.js",
+            "@class": "UGameObject",
+            "name": "tree",
+            "layers": {
+                "collision": "field"
+            },
+            "tags": ["block"],
+            "transform": {
+                "size": [50, 35]
+            },
+            "anchor": [0.5, 0.5],
+            "components": [
+                {
+                    "@module": "/script/game-rpg.js",
+                    "@class": "SpriteRenderer",
+                    "name": "sprite renderer",
+                    "sprite": "@sprites/sprite-tree-1"
+                },
+                {
+                    "@module": "/script/game-rpg.js",
+                    "@class": "Stats",
+                    "name": "stats",
+                    "hp": 10,
+                    "maxhp": 10,
+                    "dp": 1
+                }
+            ]
+        },
+        "stone": {
+			"@module": "/script/uengine.js",
+			"@class": "UGameObject",
+			"name": "stone",
+			"layers": {
+				"collision": "field"
+			},
+			"components": [
+				{
+					"@module": "/script/game-rpg.js",
+					"@class": "SpriteRenderer",
+					"name": "spriteRenderer",
+					"sprite": "@sprites/sprite-stone"
+				}
+			],
+			"transform": {
+				"position": [30, 30],
+				"size": [10, 7]
+			},
+			"anchor": [0.5, 0.5]
+        },
+        "squirrel": {
+            "@module": "/script/game-rpg.js",
+            "@class": "Character",
+            "name": "squirrel",
+            "layers": {
+                "collision": "field"
+            },
+            "tags": ["block"],
+            "transform": {
+                "size": [50, 35]
+            },
+            "anchor": [0.5, 0.5],
+            "components": [
+                {
+					"@module": "/script/game-rpg.js",
+					"@class": "SpriteRenderer",
+					"name": "spriteRenderer",
+					"sprite": "@sprites/sprite-squirrel-idle"
+                },
+                {
+                    "@module": "/script/game-rpg.js",
+                    "@class": "Moveable",
+                    "name": "moveable"
+                },
+				{
+					"@module": "/script/game-rpg.js",
+					"@class": "Stats",
+                    "name": "stats",
+                    "hp": 3,
+                    "maxhp": 3,
+                    "ap": 1,
+                    "sight": 200,
+					"speed": 100
+                },
+                {
+                    "@module": "/script/game-rpg.js",
+                    "@class": "AI",
+                    "name": "ai",
+                    "aggressive": -0.3
+                }
+            ]
+        }
     }
 }
