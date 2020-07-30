@@ -68,7 +68,7 @@
 				},
 				{
 					"@module": "/script/game-rpg.js",
-					"@class": "PlayerMove"
+					"@class": "PlayerController"
 				},
 				{
 					"@module": "/script/game-rpg.js",

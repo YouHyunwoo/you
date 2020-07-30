@@ -6,6 +6,10 @@ export default class Rectangle {
         this.height = height;
     }
 
+    contains(point) {
+        return this.x < point[0] && point[0] < this.x + this.width && this.y < point[1] && point[1] < this.y + this.height;
+    }
+
     enlarge(width, height) {
         return new Rectangle(...this.position.subv([width, height].divs(2)), this.width + width, this.height + height);
     }

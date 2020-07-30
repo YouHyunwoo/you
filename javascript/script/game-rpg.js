@@ -3,6 +3,7 @@ import * as Vector from '/script/util/vector.js';
 import * as Module from '/script/util/module.js';
 import * as Ray from '/script/util/ray.js';
 import { Progress } from '/script/util/progress.js';
+import Rectangle from './util/rect.js';
 
 Module.set(import.meta.url);
 
@@ -55,7 +56,7 @@ export class Arrangement extends Module.apply(UObject) {
 
 export class Map extends Module.apply(UGameObject) {
 	onInit() {
-		for (let i = 0; i < 20; i++) {
+		for (let i = 0; i < 1; i++) {
 			const tree = Asset.get('@asset-example/objects/tree-' + parseInt(Math.random() * 2)).clone();
 			
 			tree.transform.position = [Math.random(), Math.random()].mulv(this.transform.size);
@@ -64,15 +65,15 @@ export class Map extends Module.apply(UGameObject) {
 			Scene.objects.push(tree);
 		}
 
-		for (let i = 0; i < 100; i++) {
-			const stone = Asset.get('@asset-example/objects/stone').clone();
+		// for (let i = 0; i < 100; i++) {
+		// 	const stone = Asset.get('@asset-example/objects/stone').clone();
 
-			stone.transform.position = [Math.random(), Math.random()].mulv(this.transform.size);
-			stone.spriteRenderer.sprite.scale = [1, 1].muls(Math.random() * 0.05 + 0.01);
-			stone.init();
+		// 	stone.transform.position = [Math.random(), Math.random()].mulv(this.transform.size);
+		// 	stone.spriteRenderer.sprite.scale = [1, 1].muls(Math.random() * 0.05 + 0.01);
+		// 	stone.init();
 
-			Scene.objects.push(stone);
-		}
+		// 	Scene.objects.push(stone);
+		// }
 	}
 
 	onDraw(context) {
@@ -111,6 +112,13 @@ export class SpriteRenderer extends Module.apply(UObject) {
 		this.sprite = sprite;
 
 		return this;
+	}
+
+	getRect() {
+		const position = this.parent.transform.position.subv(this.sprite.anchor.mulv(this.sprite.size));
+		const size = this.sprite.size.mulv(this.sprite.scale);
+
+		return new Rectangle(...position, ...size);
 	}
 
 	static async fromJSON(json, asset) {
@@ -227,6 +235,85 @@ export class PlayerView extends Module.apply(UObject) {
 	}
 }
 
+export class PlayerController extends Module.apply(UObject) {
+	onInit() {
+		this.state = this.parent.state;
+
+		this.action = null;
+	}
+
+	onUpdate(delta) {
+		const mouse = Input.mouse;
+
+		// if (Input.key.down('s')) {
+		// 	this.action = 'stop';
+		// }
+
+		if (Input.key.down('m')) {
+			this.action = null;
+		}
+
+		if (Input.key.down('a')) {
+			this.action = 'attack';
+		}
+
+		if (Input.key.down('p')) {
+			this.action = 'probe';
+		}
+
+		if (Input.key.down('Escape')) {
+			this.action = null;
+		}
+
+		if (this.state.state.name == 'idle') {
+			if (this.action == null) {
+				if (mouse.down) {
+					this.state.request({
+						type: 'move',
+						point: mouse.down.slice()
+					});
+				}
+			}
+
+			if (this.action == 'attack') {
+				if (mouse.down) {
+					this.state.request({
+						type: 'attack',
+						point: mouse.down.slice()
+					});
+				}
+			}
+
+			if (this.action == 'probe') {
+				if (mouse.down) {
+					this.state.request({
+						type: 'probe',
+						point: mouse.down.slice()
+					});
+				}
+			}
+		}
+		else if (this.state.state.name == 'move') {
+			if (this.action == null) {
+				if (mouse.down) {
+					this.state.request({
+						type: 'move',
+						point: mouse.down.slice()
+					});
+				}
+			}
+		}
+		else if (this.state.state.name == 'attack') {
+			// move
+			// probe
+		}
+		else if (this.state.state.name == 'probe') {
+			// attack
+			// move
+		}
+	}
+}
+
 export class PlayerMove extends Module.apply(UObject) {
 	onUpdate(delta) {
 		const velocity = [0, 0];
@@ -294,15 +381,136 @@ export class PlayerMove extends Module.apply(UObject) {
 }
 
 export class PlayerStateIdle extends Module.apply(UState) {
+	onEnter() {
+		this.wp = null;
+		this.target = null;
+	}
+
+	request(message) {
+		if (message) {
+			if (message.type == 'move') {
+				const sp = message.point;
+				// point: message.point -> position in map || object in map
+				// 1. point in screen to position in map(Camera)
+				const wp = Camera.screenToWorld(sp);
+				
+				// 2. target: find object containing the position in Scene.objects
+				const candidates = Scene.objects.filter(object => object instanceof UGameObject && object.spriteRenderer).reverse();
+
+				let target = wp;
+
+				for (const candidate of candidates) {
+					if (candidate == this.parent.parent) {
+						continue;
+					}
+
+					if (candidate.spriteRenderer.getRect().contains(wp)) {
+						target = candidate;
+						break;
+					}
+				}
+
+				console.log(target);
+				
+				// 3. else location: position
+				this.transit('move', [target]);
+			}
+		}
+		else {
+			throw 'message is null';
+		}
+	}
 }
 
 export class PlayerStateMove extends Module.apply(UState) {
 	request(message) {
 		if (message) {
 			if (message.type == 'move') {
+				const sp = message.point;
+				// point: message.point -> position in map || object in map
+				// 1. point in screen to position in map(Camera)
+				const wp = Camera.screenToWorld(sp);
+				
+				// 2. target: find object containing the position in Scene.objects
+				const candidates = Scene.objects.filter(object => object instanceof UGameObject && object.spriteRenderer).reverse();
+
+				let target = wp;
+
+				for (const candidate of candidates) {
+					if (candidate == this.parent.parent) {
+						continue;
+					}
+
+					if (candidate.spriteRenderer.getRect().contains(wp)) {
+						target = candidate;
+						break;
+					}
+				}
+
+				console.log(target);
+				
+				// 3. else location: position
+				this.transit('move', [target]);
+			}
+
+			if (message.type == 'attack') {
 
 			}
 		}
+		else {
+			throw 'message is null';
+		}
+	}
+
+	onInit() {
+		this.object = this.parent.parent;
+	}
+
+	onEnter(target) {
+		this.target = target;
+	}
+
+	onExit() {
+		this.target = null;
+	}
+
+	onUpdate(delta) {
+		if (this.target == null) {
+			return;
+		}
+
+		const isLocation = this.target instanceof Array;
+		const targetPosition = isLocation ? this.target : this.target.transform.position;
+		const objectPosition = this.object.transform.position.slice();
+		const diff = targetPosition.subv(objectPosition);
+		const sq = diff.dotv(diff);
+		const speed = this.object.stats.speed * delta;
+
+		if (sq > speed ** 2) {
+			// move
+			if (isLocation || sq > this.object.transform.size[0] ** 2) {
+				this.object.transform.position = objectPosition.addv(diff.muls(speed).divs(Math.sqrt(sq)));
+			}
+		}
+		else {
+			// reached
+			this.object.transform.position = isLocation ? this.target : this.target.transform.position.slice();
+			if (isLocation) {
+				this.transit('idle');
+			}
+		}
+	}
+
+	onDraw(context) {
+		context.save();
+
+		context.strokeStyle = 'white';
+		
+		const position = Camera.worldToScreen([0, 0]);
+		context.strokeRect(...position.subv([2, 2]), ...[4, 4])
+
+
+		context.restore();
 	}
 }
 

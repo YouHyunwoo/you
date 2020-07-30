@@ -54,7 +54,7 @@
 				{
 					"@module": "/script/game-example.js",
 					"@class": "SpriteRenderer",
-					"name": "sprite renderer",
+					"name": "spriteRenderer",
 					"enable": true,
 					"tags": [],
 					"components": [],

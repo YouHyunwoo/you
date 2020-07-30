@@ -68,7 +68,7 @@
                 {
                     "@module": "/script/game-rpg.js",
                     "@class": "SpriteRenderer",
-                    "name": "sprite renderer",
+                    "name": "spriteRenderer",
                     "sprite": "@sprites/sprite-tree-0"
                 },
                 {
@@ -97,7 +97,7 @@
                 {
                     "@module": "/script/game-rpg.js",
                     "@class": "SpriteRenderer",
-                    "name": "sprite renderer",
+                    "name": "spriteRenderer",
                     "sprite": "@sprites/sprite-tree-1"
                 },
                 {

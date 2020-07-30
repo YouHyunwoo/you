@@ -749,12 +749,16 @@ export class USprite {
 		}
 	}
 
+	get size() {
+		return [this.width, this.height];
+	}
+
 	get width() {
-		return this.source[2] || (this.source[2] == 0) ? 0 : this.sheet.width;
+		return (this.source[2] || (this.source[2] == 0 ? 0 : this.sheet.width)) * this.scale[0];
 	}
 
 	get height() {
-		return this.source[3] || (this.source[3] == 0) ? 0 : this.sheet.height;
+		return (this.source[3] || (this.source[3] == 0 ? 0 : this.sheet.height)) * this.scale[1];
 	}
 
 	setSource(source) {
@@ -1249,6 +1253,25 @@ export class UGameObject extends Module.apply(UObject) {
 
 export class UCamera extends UGameObject {
 	onDraw(context) {}
+
+	screenToWorld(point) {
+		const cp = this.transform.position;
+		const cs = this.transform.size;
+		const ca = this.anchor;
+		const ss = [currentScreen.width, currentScreen.height];
+
+		return cp.subv(ca.mulv(cs)).addv(point.mulv(cs).divv(ss));
+	}
+
+	worldToScreen(point) {
+		const cp = this.transform.position;
+		const cs = this.transform.size;
+		const ca = this.anchor;
+		const ss = [currentScreen.width, currentScreen.height];
+
+		// debugger
+		return point.subv(cp.subv(ca.mulv(cs))).mulv(ss).divv(cs);
+	}
 }
 
 export { currentInput as Input, currentScene as Scene, currentAsset as Asset, currentCamera as Camera, currentScreen as Screen };
