@@ -675,6 +675,9 @@ export class PlayerStateProbe extends Module.apply(UState) {
 			this.progress.update(delta);
 
 			if (this.progress.isFull) {
+				// console.log(Asset.get('@asset-example/items'));
+				this.object.inventory.addItem('stone', parseInt(Math.random() * 3));
+
 				this.transit('idle');
 			}
 		}
@@ -954,7 +957,7 @@ export class UI extends Module.apply(UObject) {
 	}
 
 	onInit() {
-		this.player = Scene.find('player'); // user.player.name·Î Ã£±â
+		this.player = Scene.find('player'); // user.player.nameï¿½ï¿½ Ã£ï¿½ï¿½
 	}
 
 	onDraw(context) {

@@ -249,9 +249,13 @@ class Asset {
 		const asset = new this();
 
 		for (const p in json) {
+			if (json[p] instanceof Function) {
+				continue;
+			}
+
 			Object.defineProperty(asset, p, {
 				enumerable: true,
-				value: json[p]
+				value: {}
 			});
 
 			if (json[p]['@module'] && json[p]['@class']) {
@@ -274,6 +278,10 @@ class Asset {
 				});
 			}
 			else {
+				console.log("--------");
+				console.log(json);
+				console.log(p);
+				console.log(json[p]);
 				const result = await Promise.all(
 					Object.keys(json[p]).map(async id => await fromJSON(json[p][id], asset))
 				);
