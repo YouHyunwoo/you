@@ -40,9 +40,18 @@
 				},
 				{
 					"@module": "/script/game-rpg.js",
+					"@class": "Inventory",
+					"name": "inventory"
+				},
+				{
+					"@module": "/script/game-rpg.js",
 					"@class": "Stats",
 					"name": "stats",
-					"speed": 500
+					"hp": 8,
+					"maxhp": 10,
+					"ap": 1,
+					"dp": 0,
+					"speed": 300
 				},
 				{
 					"@module": "/script/uengine.js",
@@ -94,6 +103,11 @@
 				"size": [500, 500]
 			},
 			"anchor": [0.5, 0.5]
+		},
+		{
+			"@module": "/script/game-rpg.js",
+			"@class": "UI",
+			"name": "ui"
 		}
 	]
 }

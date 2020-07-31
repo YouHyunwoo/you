@@ -11,7 +11,8 @@ let currentAsset = null;
 let currentCamera = null;
 let currentScreen = {
 	width: 0,
-	height: 0
+	height: 0,
+	context: null
 };
 
 export async function fromJSON (json, asset={}) {
@@ -91,6 +92,7 @@ export class Engine {
 			currentAsset = listener.asset;
 			currentScene = listener.scene.get();
 			currentCamera = listener.scene.get().camera;
+			currentScreen.context = listener.screenContext;
 			
 			listener.loop(delta);
 		});
@@ -100,12 +102,16 @@ export class Engine {
 
 	constructor(canvasId) {
 		this.canvas = document.getElementById(canvasId);
-		this.context = this.canvas.getContext("2d");
+		this.context = this.canvas.getContext('2d');
+		this.screen = document.createElement('canvas');
+		this.screenContext = this.screen.getContext('2d');
 
 		this.resizeHandler = () => {
 			let size = Math.min(window.innerWidth, window.innerHeight) - 10;
 
+			this.screen.width = this.screen.height = size;
 			currentScreen.width = currentScreen.height = size;
+
 			this.canvas.width = this.canvas.height = size;
 			this.canvas.style.left = Math.floor((window.innerWidth - this.canvas.width) / 2) + "px";
 			this.canvas.style.top = Math.floor((window.innerHeight - this.canvas.height) / 2) + "px";
@@ -162,12 +168,15 @@ export class Engine {
 		this.input.update();
 		this.scene.update(delta);
 
-		this.context.save();
 		this.context.clearRect(0, 0, this.canvas.width, this.canvas.height);
-		// console.log("clear: " + this.canvas.width);
+		this.screenContext.clearRect(0, 0, this.screen.width, this.screen.height);
+
+		this.context.save();
 
 		this.scene.draw(this.context);
-		
+
+		this.context.drawImage(this.screen, 0, 0);
+
 		this.context.restore();
 	}
 }
@@ -1269,7 +1278,6 @@ export class UCamera extends UGameObject {
 		const ca = this.anchor;
 		const ss = [currentScreen.width, currentScreen.height];
 
-		// debugger
 		return point.subv(cp.subv(ca.mulv(cs))).mulv(ss).divv(cs);
 	}
 }

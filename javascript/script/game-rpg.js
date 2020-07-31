@@ -116,7 +116,7 @@ export class SpriteRenderer extends Module.apply(UObject) {
 
 	getRect() {
 		const position = this.parent.transform.position.subv(this.sprite.anchor.mulv(this.sprite.size));
-		const size = this.sprite.size.mulv(this.sprite.scale);
+		const size = this.sprite.size;
 
 		return new Rectangle(...position, ...size);
 	}
@@ -127,6 +127,48 @@ export class SpriteRenderer extends Module.apply(UObject) {
 		instance.sprite = await fromJSON(json.sprite, asset);
 
 		return instance;
+	}
+}
+
+export class Inventory extends Module.apply(UObject) {
+
+	#items = {};
+	// capacity = 0;
+
+	addItem(name, count) {
+		if (!this.#items.hasOwnProperty(name)) {
+			this.#items[name] = 0;
+		}
+
+		this.#items[name] += count;
+
+		return this;
+	}
+
+	removeItem(name, count) {
+		const index = this.#items.indexOf(name);
+
+		if (index >= 0) {
+			this.#items.splice(index, 1);
+		}
+
+		return this;
+	}
+
+	getCount(name) {
+		return this.#items.hasOwnProperty(name) ? this.#items[name] : 0;
+	}
+
+	clear() {
+		this.#items = {};
+	}
+
+	static async fromJSON(json, asset) {
+		const inventory = await super.fromJSON(json, asset);
+
+		// inventory.capacity = json['capacity'] || 0;
+
+		return inventory;
 	}
 }
 
@@ -208,6 +250,17 @@ export class Moveable extends Module.apply(UObject) {
 	}
 }
 
+export class HitArea extends Module.apply(UObject) {
+	constructor(name) {
+		super(name);
+
+		this.areas = {};
+	}
+}
+
+
+
+// Player
 export class PlayerView extends Module.apply(UObject) {
 	onInit() {
 		this.cameraTf = Camera.transform;
@@ -240,6 +293,9 @@ export class PlayerController extends Module.apply(UObject) {
 		this.state = this.parent.state;
 
 		this.action = null;
+
+		this.mouse = null;
+		this.hover = null;
 	}
 
 	onUpdate(delta) {
@@ -265,136 +321,91 @@ export class PlayerController extends Module.apply(UObject) {
 			this.action = null;
 		}
 
-		if (this.state.state.name == 'idle') {
-			if (this.action == null) {
-				if (mouse.down) {
-					this.state.request({
-						type: 'move',
-						point: mouse.down.slice()
-					});
-				}
+		if (this.action == null) {
+			if (mouse.down) {
+				this.state.request({
+					type: 'move',
+					point: mouse.down.slice()
+				});
 			}
+		}
 
-			if (this.action == 'attack') {
-				if (mouse.down) {
-					this.state.request({
-						type: 'attack',
-						point: mouse.down.slice()
-					});
-				}
-			}
+		if (this.action == 'attack') {
+			if (mouse.down) {
+				this.state.request({
+					type: 'attack',
+					point: mouse.down.slice()
+				});
 
-			if (this.action == 'probe') {
-				if (mouse.down) {
-					this.state.request({
-						type: 'probe',
-						point: mouse.down.slice()
-					});
-				}
+				this.action = null;
 			}
 		}
-		else if (this.state.state.name == 'move') {
-			if (this.action == null) {
-				if (mouse.down) {
-					this.state.request({
-						type: 'move',
-						point: mouse.down.slice()
-					});
-				}
+
+		if (this.action == 'probe') {
+			if (mouse.down) {
+				this.state.request({
+					type: 'probe',
+					point: mouse.down.slice()
+				});
+
+				this.action = null;
 			}
 		}
-		else if (this.state.state.name == 'attack') {
-			// move
-			// probe
+
+		if (mouse.move) {
+			this.mouse = mouse.move;
 		}
-		else if (this.state.state.name == 'probe') {
-			// attack
-			// move
+
+		if (this.mouse) {
+			const screenPoint = this.mouse;
+			const worldPoint = Camera.screenToWorld(screenPoint);
+
+			const candidates = Scene.objects.filter(object => object instanceof UGameObject && object.spriteRenderer).reverse();
+
+			this.hover = null;
+
+			for (const candidate of candidates) {
+				const spriteArea = candidate.spriteRenderer.getRect();
+
+				if (spriteArea.contains(worldPoint)) {
+					this.hover = spriteArea;
+					break;
+				}
+			}
 		}
 	}
-}
 
-export class PlayerMove extends Module.apply(UObject) {
-	onUpdate(delta) {
-		const velocity = [0, 0];
+	onDraw(context) {
+		context.save();
 
-		if (Input.key.press('a')) {
-			velocity[0] = -1;
+		context.strokeStyle = 'white';
+
+		if (this.hover) {
+			context.strokeRect(...this.hover.position.subv(this.parent.transform.position), ...this.hover.size);
 		}
 
-		if (Input.key.press('d')) {
-			velocity[0] = 1;
+		if (this.action) {
+			const screen = Screen.context;
+
+			screen.save();
+
+			screen.font = '18px Arial';
+			screen.fillStyle = 'white';
+			screen.fillText(this.action, 20, 90);
+
+			screen.restore();
 		}
 
-		if (Input.key.press('s')) {
-			velocity[1] = 1;
-		}
-
-		if (Input.key.press('w')) {
-			velocity[1] = -1;
-		}
-
-		const magnitude = velocity.magnitude;
-
-		if (magnitude > 0) {
-			const speed = this.parent.stats.speed * delta;
-
-			const start = this.parent.transform.position.slice();
-			const end = start.addv(velocity.muls(speed).divs(magnitude));
-
-			const position = end.slice();
-
-			// version 1
-			const rays = [];
-
-			const anchor = this.parent.anchor;
-			const size = this.parent.transform.size;
-			const adjust = size.mulv([0.5, 0.5].subv(anchor));
-
-			Scene.findAll('#block', true).forEach(block => {
-				const rayResult = Ray.Boxcast(size, start.addv(adjust), end.addv(adjust), block.getRect());
-
-				if (rayResult.hit) {
-					rayResult.point = rayResult.point.subv(adjust);
-					rays.push(rayResult);
-				}
-			});
-
-			const minRay = [null, null];
-			rays.filter(ray => ray.normal[0] != 0).forEach(ray => {
-				if (minRay[0] == null || minRay[0].distance > ray.distance) {
-					minRay[0] = ray;
-					position[0] = ray.point[0];
-				}
-			});
-
-			rays.filter(ray => ray.normal[1] != 0).forEach(ray => {
-				if (minRay[1] == null || minRay[1].distance > ray.distance) {
-					minRay[1] = ray;
-					position[1] = ray.point[1];
-				}
-			});
-
-			this.parent.transform.position.setv(position);
-		}
+		context.restore();
 	}
 }
 
 export class PlayerStateIdle extends Module.apply(UState) {
-	onEnter() {
-		this.wp = null;
-		this.target = null;
-	}
-
 	request(message) {
 		if (message) {
 			if (message.type == 'move') {
 				const sp = message.point;
-				// point: message.point -> position in map || object in map
-				// 1. point in screen to position in map(Camera)
 				const wp = Camera.screenToWorld(sp);
-				
-				// 2. target: find object containing the position in Scene.objects
 				const candidates = Scene.objects.filter(object => object instanceof UGameObject && object.spriteRenderer).reverse();
 
 				let target = wp;
@@ -409,11 +420,28 @@ export class PlayerStateIdle extends Module.apply(UState) {
 						break;
 					}
 				}
-
-				console.log(target);
 				
-				// 3. else location: position
 				this.transit('move', [target]);
+			}
+			else if (message.type == 'probe') {
+				const sp = message.point;
+				const wp = Camera.screenToWorld(sp);
+				const candidates = Scene.objects.filter(object => object instanceof UGameObject && object.spriteRenderer).reverse();
+
+				let target = wp;
+
+				for (const candidate of candidates) {
+					if (candidate == this.parent.parent) {
+						continue;
+					}
+
+					if (candidate.spriteRenderer.getRect().contains(wp)) {
+						target = candidate;
+						break;
+					}
+				}
+				
+				this.transit('probe', [target]);
 			}
 		}
 		else {
@@ -480,7 +508,7 @@ export class PlayerStateMove extends Module.apply(UState) {
 		}
 
 		const isLocation = this.target instanceof Array;
-		const targetPosition = isLocation ? this.target : this.target.transform.position;
+		const targetPosition = isLocation ? this.target : this.target.transform.position.slice();
 		const objectPosition = this.object.transform.position.slice();
 		const diff = targetPosition.subv(objectPosition);
 		const sq = diff.dotv(diff);
@@ -489,12 +517,53 @@ export class PlayerStateMove extends Module.apply(UState) {
 		if (sq > speed ** 2) {
 			// move
 			if (isLocation || sq > this.object.transform.size[0] ** 2) {
-				this.object.transform.position = objectPosition.addv(diff.muls(speed).divs(Math.sqrt(sq)));
+				// this.object.transform.position = objectPosition.addv(diff.muls(speed).divs(Math.sqrt(sq)));
+
+				const magnitude = Math.sqrt(sq);
+
+				const start = objectPosition;
+				const end = start.addv(diff.muls(speed).divs(magnitude));
+
+				const position = end.slice();
+
+				// version 1
+				const rays = [];
+
+				const anchor = this.object.anchor;
+				const size = this.object.transform.size;
+				const adjust = size.mulv([0.5, 0.5].subv(anchor));
+
+				Scene.findAll('#block', true).forEach(block => {
+					const rayResult = Ray.Boxcast(size, start.addv(adjust), end.addv(adjust), block.getRect());
+
+					if (rayResult.hit) {
+						rayResult.point = rayResult.point.subv(adjust);
+						rays.push(rayResult);
+					}
+				});
+
+				const minRay = [null, null];
+				rays.filter(ray => ray.normal[0] != 0).forEach(ray => {
+					if (minRay[0] == null || minRay[0].distance > ray.distance) {
+						minRay[0] = ray;
+						position[0] = ray.point[0];
+					}
+				});
+
+				rays.filter(ray => ray.normal[1] != 0).forEach(ray => {
+					if (minRay[1] == null || minRay[1].distance > ray.distance) {
+						minRay[1] = ray;
+						position[1] = ray.point[1];
+					}
+				});
+
+				this.object.transform.position.setv(position);
 			}
 		}
 		else {
 			// reached
-			this.object.transform.position = isLocation ? this.target : this.target.transform.position.slice();
+			this.object.transform.position = targetPosition;
+
 			if (isLocation) {
 				this.transit('idle');
 			}
@@ -505,29 +574,128 @@ export class PlayerStateMove extends Module.apply(UState) {
 		context.save();
 
 		context.strokeStyle = 'white';
-		
-		const position = Camera.worldToScreen([0, 0]);
-		context.strokeRect(...position.subv([2, 2]), ...[4, 4])
 
+		const position = this.target instanceof Array ? this.target.subv(this.object.transform.position) : this.target.transform.position.subv(this.object.transform.position);
+		
+		context.strokeRect(...position.subv([2, 2]), ...[4, 4])
 
 		context.restore();
 	}
 }
 
 export class PlayerStateProbe extends Module.apply(UState) {
-	onEnter() {
+	request(message) {
+		if (message) {
+			if (message.type == '') {
+
+			}
+		}
+	}
+
+	onInit() {
+		this.object = this.parent.parent;
+
 		this.progress = new Progress(0, 1, 1, 0);
 	}
 
-	onUpdate(delta) {
-		this.progress.update(delta);
+	onEnter(target) {
+		this.target = target;
 
-		if (this.progress.isFull) {
-			this.transit('idle');
+		this.progress.value = this.progress.begin;
+	}
+
+	onExit() {
+		this.target = null;
+
+		this.progress.value = this.progress.begin;
+	}
+
+	onUpdate(delta) {
+		if (this.target) {
+			const isLocation = this.target instanceof Array;
+
+			const targetPosition = isLocation ? this.target : this.target.transform.position.slice();
+			const objectPosition = this.object.transform.position.slice();
+			const diff = targetPosition.subv(objectPosition);
+			const sq = diff.dotv(diff);
+			const speed = this.object.stats.speed * delta;
+
+			if (sq > speed ** 2) {
+				// move
+				if (isLocation || sq > this.object.transform.size[0] ** 2) {
+					const magnitude = Math.sqrt(sq);
+
+					const start = objectPosition;
+					const end = start.addv(diff.muls(speed).divs(magnitude));
+
+					const position = end.slice();
+
+					// version 1
+					const rays = [];
+
+					const anchor = this.object.anchor;
+					const size = this.object.transform.size;
+					const adjust = size.mulv([0.5, 0.5].subv(anchor));
+
+					Scene.findAll('#block', true).forEach(block => {
+						const rayResult = Ray.Boxcast(size, start.addv(adjust), end.addv(adjust), block.getRect());
+
+						if (rayResult.hit) {
+							rayResult.point = rayResult.point.subv(adjust);
+							rays.push(rayResult);
+						}
+					});
+
+					const minRay = [null, null];
+					rays.filter(ray => ray.normal[0] != 0).forEach(ray => {
+						if (minRay[0] == null || minRay[0].distance > ray.distance) {
+							minRay[0] = ray;
+							position[0] = ray.point[0];
+						}
+					});
+
+					rays.filter(ray => ray.normal[1] != 0).forEach(ray => {
+						if (minRay[1] == null || minRay[1].distance > ray.distance) {
+							minRay[1] = ray;
+							position[1] = ray.point[1];
+						}
+					});
+
+					this.object.transform.position.setv(position);
+				}
+			}
+			else {
+				// reached
+				this.object.transform.position = targetPosition;
+
+				this.target = null;
+			}
+		}
+		else {
+			this.progress.update(delta);
+
+			if (this.progress.isFull) {
+				this.transit('idle');
+			}
+		}
+	}
+
+	onDraw(context) {
+		if (this.target == null) {
+			context.save();
+
+			context.fillStyle = 'black';
+			context.fillRect(-52, 18, 104, 20);
+
+			context.fillStyle = 'orange';
+			context.fillRect(-50, 20, this.progress.rate * 100, 16);
+
+			context.restore();
 		}
 	}
 }
 
+// Character
 export class RandomCharacterGenerator extends Module.apply(UObject) {
 	onInit() {
 		this.map = Scene.find('map', true);
@@ -682,7 +850,7 @@ export class AI extends Module.apply(UObject) {
 				// console.log('aggressive -> idle')
 				this.target = null;
 				this.parent.moveable.destination = null;
-				this.attackProgress.current = 0;
+				this.attackProgress.value = 0;
 				this.parent.spriteRenderer.sprite = Asset.get('@asset-example/sprites/sprite-squirrel-idle');
 				this.state = 'idle';
 			}
@@ -691,7 +859,7 @@ export class AI extends Module.apply(UObject) {
 					if (this.attackProgress.isFull) {
 						// console.log('attack!')
 						this.target.stats.hp -= this.parent.stats.ap - this.target.stats.dp;
-						this.attackProgress.current = 0;
+						this.attackProgress.value = 0;
 					}
 				}
 
@@ -774,6 +942,38 @@ export class AI extends Module.apply(UObject) {
 		ai.target = null;
 
 		return ai;
+	}
+}
+
+// UI
+export class UI extends Module.apply(UObject) {
+	constructor(name) {
+		super(name);
+
+
+	}
+
+	onInit() {
+		this.player = Scene.find('player'); // user.player.name·Î Ã£±â
+	}
+
+	onDraw(context) {
+		const screen = Screen.context;
+
+		screen.save();
+
+		screen.fillStyle = 'black';
+		screen.fillRect(18, 18, 204, 24);
+
+		screen.fillStyle = 'red';
+		screen.fillRect(20, 20, (this.player.stats.hp / this.player.stats.maxhp) * 200, 20);
+
+		screen.fillStyle = 'white';
+		screen.font = '18px Arial';
+		screen.textBaseline = 'middle';
+		screen.fillText(this.player.stats.hp, 22, 31);
+
+		screen.restore();
 	}
 }
 
