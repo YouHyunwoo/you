@@ -108,6 +108,15 @@
 			"@module": "/script/game-rpg.js",
 			"@class": "UI",
 			"name": "ui"
+		},
+		{
+			"@module": "/script/game-rpg.js",
+			"@class": "Log",
+			"name": "log",
+			"capacity": 10,
+			"position": [10, 500],
+			"size": [300, 104],
+			"color": "rgba(255, 255, 255, 0.1)"
 		}
 	]
 }

@@ -676,7 +676,16 @@ export class PlayerStateProbe extends Module.apply(UState) {
 
 			if (this.progress.isFull) {
 				// console.log(Asset.get('@asset-example/items'));
-				this.object.inventory.addItem('stone', parseInt(Math.random() * 3));
+				const count = parseInt(Math.random() * 3);
+
+				if (count > 0) {
+					this.object.inventory.addItem('stone', count);
+				
+					const log = Scene.find('log');
+
+					log.log(`${'stone'}을(를) ${count}개 획득하였습니다.`, 'white');
+				}
+				
 
 				this.transit('idle');
 			}
@@ -952,8 +961,6 @@ export class AI extends Module.apply(UObject) {
 export class UI extends Module.apply(UObject) {
 	constructor(name) {
 		super(name);
-
-
 	}
 
 	onInit() {
@@ -977,6 +984,67 @@ export class UI extends Module.apply(UObject) {
 		screen.fillText(this.player.stats.hp, 22, 31);
 
 		screen.restore();
+	}
+}
+
+export class Log extends Module.apply(UObject) {
+	constructor(name) {
+		super(name);
+
+		this.logs = [];
+		this.capacity = 10;
+		this.showCount = 5;
+
+		this.position = [0, 0];
+		this.size = [0, 0];
+		this.color = 'white';
+	}
+
+	onInit() {
+		this.player = Scene.find('player');
+	}
+
+	onDraw(context) {
+		const screen = Screen.context;
+
+		screen.save();
+
+		screen.fillStyle = this.color;
+		screen.fillRect(...this.position, ...this.size);
+
+		screen.font = '16px serif';
+		screen.textBaseline = 'top';
+
+		for (let i = 0; i < Math.min(this.logs.length, this.showCount); i++) {
+			screen.fillStyle = this.logs[this.logs.length - 1 - i].color;
+			screen.fillText(this.logs[this.logs.length - 1 - i].message, this.position[0] + 4, this.position[1] + i * 20 + 4);
+		}
+
+		screen.restore();
+	}
+
+	log(message, color='black') {
+		this.logs.push({
+			message: message,
+			color: color
+		});
+
+		if (this.logs.length > this.capacity) {
+			this.logs.shift();
+		}
+
+		return this;
+	}
+
+	static async fromJSON(json, asset) {
+		const log = await super.fromJSON(json, asset);
+
+		log.capacity = log['capacity'] || 10;
+		log.position = json['position'] || [0, 0];
+		log.size = json['size'] || [0, 0];
+		log.color = json['color'] || 'white';
+
+		return log;
 	}
 }
 
