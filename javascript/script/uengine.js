@@ -40,7 +40,7 @@ export async function fromJSON (json, asset={}) {
 		}
 		else {
 			for (let p in json) {
-				json[p] = fromJSON(json[p], asset);
+				json[p] = await fromJSON(json[p], asset);
 			}
 
 			return json;
@@ -278,10 +278,6 @@ class Asset {
 				});
 			}
 			else {
-				console.log("--------");
-				console.log(json);
-				console.log(p);
-				console.log(json[p]);
 				const result = await Promise.all(
 					Object.keys(json[p]).map(async id => await fromJSON(json[p][id], asset))
 				);

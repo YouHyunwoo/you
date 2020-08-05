@@ -174,5 +174,10 @@
                 }
             ]
         }
+    },
+    "items": {
+        "money": {
+            "description": "money"
+        }
     }
 }
