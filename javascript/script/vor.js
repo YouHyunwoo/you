@@ -285,6 +285,16 @@ export class PlayerView extends Module.apply(UObject) {
 	onUpdate(delta) {
 		this.cameraTf.position = this.playerTf.position.slice();
 
+		console.log(Camera.getRect());
+		const cameraRt = Camera.getRect();
+
+		if (cameraRt.x < 0) {
+			this.cameraTf.position[0] = 0;
+		}
+		else if (cameraRt.right > Scene.find('map')) {
+			this.cameraTf.position[1] = 0;
+		}
+
 		const mouse = Input.mouse;
 
 		if (mouse.wheel) {
