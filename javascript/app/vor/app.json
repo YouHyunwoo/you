@@ -1,0 +1,11 @@
+{
+	"id": "vor",
+	"assets": [
+		"object"
+	],
+	"scenes": [
+		"title",
+		"game"
+	],
+	"entry": "game"
+}

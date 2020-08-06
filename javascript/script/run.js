@@ -1,19 +1,34 @@
 import * as U from './uengine.js';
 // import App from './game-example.js';
-import App from './game-rpg.js';
+// import App from './game-rpg.js';
 
 U.Engine.init();
 
-// create engines
-const engine = new U.Engine('canvas-0');
+// game-rpg
 
-// run apps
+// // create engines
+// const engine = new U.Engine('canvas-0');
+
+// // run apps
+// (async () => {
+// 	const app = await U.Application.load(App);
+
+// 	console.log(app);
+// 	engine.run(app);
+// })();
+
+
+
+// vor
+const engine = new U.Engine('canvas');
+
 (async () => {
-	const app = await U.Application.load(App);
+	const app = await U.Application.load('vor');
 
-	console.log(app);
 	engine.run(app);
 })();
+
+
 
 
 // run two or more games

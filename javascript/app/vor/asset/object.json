@@ -1,0 +1,196 @@
+{
+    "values": {
+    },
+    "images": {
+        "@module": "/script/uengine.js",
+        "@class": "UImage",
+        "logo": { "file": "image/logo.png" },
+        "stone": { "file": "image/stone.png" },
+        "trees": { "file": "image/trees.png" },
+        "squirrel": { "file": "image/squirrel.png" },
+        "youtube": { "file": "image/youtube.png" },
+        "building": { "file": "image/buildings2.png" },
+        "ground": { "file": "image/map.png" }
+    },
+    "sprites": {
+        "@module": "/script/uengine.js",
+        "@class": "USprite",
+        "logo": {
+            "sheet": "@images/logo",
+            "source": [0, 0, null, null],
+            "anchor": [0.5, 1],
+            "scale": [0.25, 0.5]
+        },
+        "stone": {
+            "sheet": "@images/stone",
+            "source": [0, 0, null, null],
+            "anchor": [0.55, 1],
+            "scale": [0.1, 0.1]
+        },
+        "tree-0": {
+            "sheet": "@images/trees",
+            "source": [0, 0, 64, 64],
+            "anchor": [0.5, 0.95],
+            "scale": [5, 5]
+        },
+        "tree-1": {
+            "sheet": "@images/trees",
+            "source": [64, 0, 64, 64],
+            "anchor": [0.5, 0.95],
+            "scale": [7, 7]
+        },
+        "squirrel-idle": {
+            "sheet": "@images/squirrel",
+            "source": [0, 0, 48, 32],
+            "anchor": [0.25, 0.95],
+            "scale": [1, 1]
+        },
+        "squirrel-move": {
+            "sheet": "@images/squirrel",
+            "source": [0, 32, 48, 32],
+            "anchor": [0.25, 0.95],
+            "scale": [1, 1]
+        },
+        "building": {
+            "sheet": "@images/building",
+            "source": [15, 0, 34, null],
+            "anchor": [0.5, 1],
+            "scale": [10, 10]
+        },
+        "ground": {
+            "sheet": "@images/ground",
+            "source": [0, 0, null, null],
+            "anchor": [0, 0],
+            "scale": [20, 20]
+        }
+    },
+    "objects": {
+        "tree-0": {
+            "@module": "/script/uengine.js",
+            "@class": "UGameObject",
+            "name": "tree",
+            "layers": {
+                "collision": "field"
+            },
+            "tags": ["block"],
+            "transform": {
+                "size": [50, 35]
+            },
+            "anchor": [0.5, 0.5],
+            "components": [
+                {
+                    "@module": "/script/vor.js",
+                    "@class": "SpriteRenderer",
+                    "name": "spriteRenderer",
+                    "sprite": "@sprites/tree-0"
+                },
+                {
+                    "@module": "/script/vor.js",
+                    "@class": "Stats",
+                    "name": "stats",
+                    "hp": 10,
+                    "maxhp": 10,
+                    "dp": 1
+                }
+            ]
+        },
+        "tree-1": {
+            "@module": "/script/uengine.js",
+            "@class": "UGameObject",
+            "name": "tree",
+            "layers": {
+                "collision": "field"
+            },
+            "tags": ["block"],
+            "transform": {
+                "size": [50, 35]
+            },
+            "anchor": [0.5, 0.5],
+            "components": [
+                {
+                    "@module": "/script/vor.js",
+                    "@class": "SpriteRenderer",
+                    "name": "spriteRenderer",
+                    "sprite": "@sprites/tree-1"
+                },
+                {
+                    "@module": "/script/vor.js",
+                    "@class": "Stats",
+                    "name": "stats",
+                    "hp": 10,
+                    "maxhp": 10,
+                    "dp": 1
+                }
+            ]
+        },
+        "stone": {
+			"@module": "/script/uengine.js",
+			"@class": "UGameObject",
+			"name": "stone",
+			"layers": {
+				"collision": "field"
+			},
+			"components": [
+				{
+					"@module": "/script/vor.js",
+					"@class": "SpriteRenderer",
+					"name": "spriteRenderer",
+					"sprite": "@sprites/stone"
+				}
+			],
+			"transform": {
+				"position": [30, 30],
+				"size": [10, 7]
+			},
+			"anchor": [0.5, 0.5]
+        },
+        "squirrel": {
+            "@module": "/script/vor.js",
+            "@class": "Character",
+            "name": "squirrel",
+            "layers": {
+                "collision": "field"
+            },
+            "tags": ["block"],
+            "transform": {
+                "size": [50, 35]
+            },
+            "anchor": [0.5, 0.5],
+            "components": [
+                {
+					"@module": "/script/vor.js",
+					"@class": "SpriteRenderer",
+					"name": "spriteRenderer",
+					"sprite": "@sprites/squirrel-idle"
+                },
+                {
+                    "@module": "/script/vor.js",
+                    "@class": "Moveable",
+                    "name": "moveable"
+                },
+				{
+					"@module": "/script/vor.js",
+					"@class": "Stats",
+                    "name": "stats",
+                    "hp": 3,
+                    "maxhp": 3,
+                    "ap": 1,
+                    "sight": 200,
+					"speed": 100
+                },
+                {
+                    "@module": "/script/vor.js",
+                    "@class": "AI",
+                    "name": "ai",
+                    "aggressive": -0.3,
+                    "aggressiveImage": "@images/youtube"
+                }
+            ]
+        }
+    },
+    "items": {
+        "money": {
+            "description": "money"
+        }
+    }
+}

@@ -1,0 +1,120 @@
+{
+	"id": "title",
+	"objects": [
+		{
+			"@module": "/script/vor.js",
+			"@class": "Arrangement",
+			"name": "arrangement",
+			"layerType": "collision",
+			"layerOrder": ["ground", "field", "sky"]
+		},
+		{
+			"@module": "/script/vor.js",
+			"@class": "Map",
+			"name": "map",
+			"layers": {
+				"collision": "ground"
+			},
+			"tags": ["ground"],
+			"components": [],
+			"transform": {
+				"size": [2000, 2000]
+			}
+		},
+		{
+			"@module": "/script/uengine.js",
+			"@class": "UGameObject",
+			"name": "player",
+			"layers": {
+				"collision": "field"
+			},
+			"tags": ["player"],
+			"components": [
+				{
+					"@module": "/script/vor.js",
+					"@class": "SpriteRenderer",
+					"name": "spriteRenderer",
+					"sprite": "@object/sprites/logo"
+				},
+				{
+					"@module": "/script/vor.js",
+					"@class": "Inventory",
+					"name": "inventory"
+				},
+				{
+					"@module": "/script/vor.js",
+					"@class": "Stats",
+					"name": "stats",
+					"hp": 8,
+					"maxhp": 10,
+					"ap": 1,
+					"dp": 0,
+					"speed": 300
+				},
+				{
+					"@module": "/script/uengine.js",
+					"@class": "UContext",
+					"name": "state",
+					"components": [
+						{
+							"@module": "/script/vor.js",
+							"@class": "PlayerStateIdle",
+							"name": "idle"
+						},
+						{
+							"@module": "/script/vor.js",
+							"@class": "PlayerStateMove",
+							"name": "move"
+						},
+						{
+							"@module": "/script/vor.js",
+							"@class": "PlayerStateProbe",
+							"name": "probe"
+						}
+					]
+				},
+				{
+					"@module": "/script/vor.js",
+					"@class": "PlayerController"
+				},
+				{
+					"@module": "/script/vor.js",
+					"@class": "PlayerView"
+				}
+			],
+			"transform": {
+				"position": [100, 100],
+				"size": [50, 35]
+			},
+			"anchor": [0.5, 0.5]
+		},
+		{
+			"@module": "/script/vor.js",
+			"@class": "RandomCharacterGenerator"
+		},
+		{
+			"@module": "/script/uengine.js",
+			"@class": "UCamera",
+			"name": "camera",
+			"transform": {
+				"position": [0, 0],
+				"size": [500, 500]
+			},
+			"anchor": [0.5, 0.5]
+		},
+		{
+			"@module": "/script/vor.js",
+			"@class": "UI",
+			"name": "ui"
+		},
+		{
+			"@module": "/script/vor.js",
+			"@class": "Log",
+			"name": "log",
+			"capacity": 10,
+			"position": [10, 500],
+			"size": [300, 104],
+			"color": "rgba(255, 255, 255, 0.1)"
+		}
+	]
+}
